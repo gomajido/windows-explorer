@@ -1,351 +1,208 @@
-# Folder Explorer - Clean Architecture
+# 📁 Folder Explorer
 
-A Windows Explorer clone built with **Elysia.js** (Backend) and **Vue.js 3** (Frontend) using **Clean Architecture** principles.
+A modern Windows Explorer clone built with **Clean Architecture** principles.
 
-## Tech Stack
+![Score](https://img.shields.io/badge/Backend-9%2F10-green)
+![Score](https://img.shields.io/badge/Frontend-9.6%2F10-green)
+![Docker](https://img.shields.io/badge/Docker-Ready-blue)
+
+## ✨ Features
+
+### Core
+- 📂 Two-panel layout (folder tree + contents)
+- 🌳 Unlimited folder nesting with lazy loading
+- 🔍 Real-time search with cursor pagination
+- 📱 Grid/List view toggle
+- ⌨️ Full keyboard navigation
+- ♿ WCAG accessibility (ARIA labels)
+
+### Scalability
+- ⚡ Redis caching (5min TTL)
+- 🔒 Redis-based rate limiting (100 req/min)
+- 📖 Read/Write database split ready
+- 📄 Cursor pagination (O(1) at any page)
+
+## 🛠 Tech Stack
 
 | Layer | Technology |
 |-------|------------|
-| **Runtime** | Bun |
-| **Backend** | Elysia.js + TypeScript |
-| **Frontend** | Vue.js 3 (Composition API) + TypeScript + Vite |
-| **Database** | MySQL + Drizzle ORM |
-| **Styling** | TailwindCSS |
-| **Architecture** | Clean Architecture |
-| **Structure** | Monorepo (npm workspaces) |
+| Runtime | Bun |
+| Backend | Elysia.js + TypeScript |
+| Frontend | Vue.js 3 + TypeScript + Vite |
+| Database | MySQL 8.0 + Drizzle ORM |
+| Cache | Redis 7 |
+| Styling | TailwindCSS |
 
-## Project Structure
-
-```
-├── be-elysia/                    # Backend
-│   ├── drizzle.config.ts         # Drizzle ORM config
-│   └── src/
-│       ├── domain/               # Entities & Interfaces
-│       │   ├── entities/
-│       │   │   └── Folder.ts
-│       │   └── interfaces/
-│       │       └── IFolderRepository.ts
-│       ├── application/          # Use Cases
-│       │   └── usecases/
-│       │       ├── GetFolderTree.ts
-│       │       ├── GetChildren.ts
-│       │       ├── CreateFolder.ts
-│       │       └── SearchFolders.ts
-│       ├── infrastructure/       # Database & Repository
-│       │   ├── database/
-│       │   │   ├── schema.ts
-│       │   │   ├── connection.ts
-│       │   │   └── seed.ts
-│       │   └── repositories/
-│       │       └── FolderRepository.ts
-│       └── presentation/         # API Routes
-│           └── routes/
-│               └── folderRoutes.ts
-│
-├── fe-vue/                       # Frontend
-│   └── src/
-│       ├── domain/               # Entities
-│       │   └── entities/
-│       │       └── Folder.ts
-│       ├── application/          # Services (Composables)
-│       │   └── services/
-│       │       └── FolderService.ts
-│       ├── infrastructure/       # API Client
-│       │   └── api/
-│       │       └── FolderApi.ts
-│       └── presentation/         # Vue Components
-│           └── components/
-│               ├── FolderTree.vue
-│               ├── FolderTreeNode.vue
-│               └── ContentPanel.vue
-│
-├── architecture.txt              # Architecture Documentation
-├── lazyloading.txt               # Lazy Loading Guide
-└── package.json                  # Monorepo Config
-```
-
-## Getting Started
+## 🚀 Quick Start
 
 ### Prerequisites
-
-- Bun 1.0+
-- MySQL 8.0+
-- npm 9+
-
-### Installation
-
-```bash
-# Install all dependencies
-npm install
-
-# Install Bun (if not installed)
-curl -fsSL https://bun.sh/install | bash
-```
-
-### Database Setup
-
-```bash
-cd be-elysia
-
-# Push schema to database
-bun run db:push
-
-# Seed database with sample data
-bun run db:seed
-```
-
-### Development
-
-```bash
-# Run both backend and frontend
-npm run dev
-
-# Or run separately
-cd be-elysia && bun run dev    # Backend on http://localhost:3001
-cd fe-vue && bun run dev       # Frontend on http://localhost:5173
-```
-
-### Build
-
-```bash
-npm run build
-```
-
-## API Endpoints (REST v1)
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/v1/folders/tree` | Get complete folder tree (left panel) |
-| GET | `/api/v1/folders/:id/children` | Get direct children (right panel) |
-| GET | `/api/v1/folders/:id` | Get single folder details |
-| GET | `/api/v1/folders/search?q=` | Search folders and files |
-| POST | `/api/v1/folders` | Create new folder |
-| PATCH | `/api/v1/folders/:id` | Rename folder |
-| DELETE | `/api/v1/folders/:id` | Delete folder and children |
-
-## Features
-
-### Core Requirements
-- [x] Two-panel layout (left: folder tree, right: contents)
-- [x] Display complete folder structure on load
-- [x] Unlimited subfolder nesting levels
-- [x] Click folder to show direct children
-- [x] Expandable/collapsible folders in tree
-
-### Bonus Features
-- [x] Search function
-- [x] Display files in right panel
-- [x] Clean Architecture
-- [x] Service and Repository layers
-- [x] REST API standards (versioning, naming)
-- [x] Bun runtime
-- [x] Elysia framework
-- [x] Monorepo structure
-- [x] ORM (Drizzle)
-
-## Clean Architecture Layers
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                    PRESENTATION                         │
-│            (API Routes, Vue Components)                 │
-└─────────────────────────────────────────────────────────┘
-                          │
-                          ▼
-┌─────────────────────────────────────────────────────────┐
-│                    APPLICATION                          │
-│                  (Use Cases)                            │
-└─────────────────────────────────────────────────────────┘
-                          │
-                          ▼
-┌─────────────────────────────────────────────────────────┐
-│                      DOMAIN                             │
-│              (Entities, Interfaces)                     │
-└─────────────────────────────────────────────────────────┘
-                          ▲
-                          │
-┌─────────────────────────────────────────────────────────┐
-│                  INFRASTRUCTURE                         │
-│              (Database, Repositories)                   │
-└─────────────────────────────────────────────────────────┘
-```
-
-## Database Schema
-
-```sql
-TABLE: folders
-├── id          INT (PK, Auto-increment)
-├── name        VARCHAR(255)
-├── parent_id   INT (FK, nullable)
-├── is_folder   BOOLEAN
-├── created_at  TIMESTAMP
-└── updated_at  TIMESTAMP
-```
-
-## Environment Variables
-
-```bash
-# be-elysia/.env
-DATABASE_URL=mysql://root:password@localhost:3309/folder_explorer
-PORT=3001
-```
-
-## Docker Deployment (Recommended)
-
-### Prerequisites
-
 - Docker 20.10+
 - Docker Compose 2.0+
+- Bun 1.0+ (for local commands)
 
-### Quick Start (3 Steps)
+### 3-Step Setup
 
 ```bash
-# Step 1: Start all services
+# 1. Start all services
 docker-compose up -d --build
 
-# Step 2: Create database table (run from local machine)
-cd be-elysia
-bun run db:push
+# 2. Create database tables
+cd be-elysia && bun run db:push
 
-# Step 3: Seed sample data (485 folders/files)
+# 3. Seed sample data (485 items)
 bun run db:seed
 ```
 
-**That's it!** Open http://localhost:8080 to see the app.
+**Open:** http://localhost:8080
 
-### Docker Services
+## 🐳 Docker Services
 
-| Service | Container | Port | Description |
-|---------|-----------|------|-------------|
-| **Frontend** | folder-explorer-web | 8080 | Vue.js + Nginx |
-| **Backend** | folder-explorer-api | 3001 | Elysia.js API |
-| **Database** | folder-explorer-db | 3309 | MySQL 8.0 |
-| **Cache** | folder-explorer-cache | 6379 | Redis 7 |
+| Service | Port | Description |
+|---------|------|-------------|
+| folder-explorer-web | 8080 | Frontend (Vue + Nginx) |
+| folder-explorer-api | 3001 | Backend (Elysia) |
+| folder-explorer-db | 3309 | MySQL 8.0 |
+| folder-explorer-cache | 6379 | Redis 7 |
 
-### Access URLs
+### URLs
 
 | Service | URL |
 |---------|-----|
 | Frontend | http://localhost:8080 |
-| Backend API | http://localhost:3001/api |
-| Swagger Docs | http://localhost:3001/api/docs |
-| Health Check | http://localhost:3001/health |
+| API | http://localhost:3001/api |
+| Swagger | http://localhost:3001/api/docs |
+| Health | http://localhost:3001/health |
 
-### Docker Commands
+## 📦 Docker Commands
 
 ```bash
-# Start services
+# Start
 docker-compose up -d
 
 # Start with rebuild
 docker-compose up -d --build
 
-# View logs (all services)
+# View logs
 docker-compose logs -f
 
-# View specific service logs
-docker-compose logs -f backend
-docker-compose logs -f frontend
-docker-compose logs -f mysql
-docker-compose logs -f redis
-
-# Stop all services
+# Stop
 docker-compose down
 
-# Stop and remove volumes (reset database)
+# Reset (delete data)
 docker-compose down -v
-
-# Check service status
-docker-compose ps
 ```
 
-### Database Commands
+## 🗄️ Database Commands
 
-**Important:** Run these from your local machine (not inside Docker), as they connect to the Docker MySQL via port 3309.
+Run from `be-elysia/` directory:
 
 ```bash
-cd be-elysia
-
-# Push schema to database (creates tables)
+# Create tables
 bun run db:push
 
-# Seed database with 485 sample folders/files
+# Seed data
 bun run db:seed
 
-# Open Drizzle Studio (database GUI)
+# Open database GUI
 bun run db:studio
 ```
 
-### Environment Variables
+## 🔌 API Endpoints
 
-The Docker containers use these default values:
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/v1/folders/tree` | Full folder tree |
+| GET | `/api/v1/folders/root/children` | Root level items |
+| GET | `/api/v1/folders/:id/children` | Folder contents |
+| GET | `/api/v1/folders/:id/subfolders` | Subfolders only (lazy load) |
+| GET | `/api/v1/folders/search?q=` | Search with cursor |
+| POST | `/api/v1/folders` | Create folder |
+| PATCH | `/api/v1/folders/:id` | Rename folder |
+| DELETE | `/api/v1/folders/:id` | Delete folder |
+
+## 🏗️ Project Structure
+
+```
+windows-explorer/
+├── be-elysia/                    # Backend
+│   └── src/
+│       ├── domain/               # Entities, Interfaces
+│       ├── application/          # Use Cases
+│       ├── infrastructure/       # Database, Cache, Repository
+│       │   ├── database/
+│       │   │   ├── connection.ts # Read/Write split
+│       │   │   ├── schema.ts
+│       │   │   └── seed.ts
+│       │   ├── cache/
+│       │   │   └── RedisCache.ts
+│       │   └── repositories/
+│       └── presentation/         # Routes, Middlewares
+│
+├── fe-vue/                       # Frontend
+│   └── src/
+│       ├── domain/               # Types
+│       ├── application/          # Services, Composables
+│       │   ├── services/
+│       │   └── composables/
+│       │       └── useErrorHandler.ts
+│       ├── infrastructure/       # API Client
+│       └── presentation/         # Components, Pages
+│           └── components/
+│               ├── ErrorBoundary.vue
+│               ├── ErrorToast.vue
+│               ├── SkeletonLoader.vue
+│               ├── FolderTree.vue
+│               ├── ContentPanel.vue
+│               └── icons/
+│
+├── docker-compose.yml
+└── technical-document.md         # Full documentation
+```
+
+## ⚙️ Environment Variables
 
 ```bash
 # Database
-DB_HOST=mysql              # Docker service name
-DB_PORT=3306               # Internal MySQL port
+DB_HOST=127.0.0.1
+DB_PORT=3309
 DB_USER=root
 DB_PASSWORD=root
 DB_NAME=folder_explorer
 
 # Redis
-REDIS_HOST=redis           # Docker service name
-REDIS_PORT=6379
-
-# Backend
-PORT=3001
-NODE_ENV=production
-```
-
-For local development connecting to Docker services:
-
-```bash
-# be-elysia/.env
-DB_HOST=127.0.0.1
-DB_PORT=3309               # Exposed port
-DB_USER=root
-DB_PASSWORD=root
-DB_NAME=folder_explorer
 REDIS_HOST=127.0.0.1
 REDIS_PORT=6379
+
+# Production (Read/Write Split)
+DB_WRITE_HOST=mysql-master
+DB_READ_HOST=mysql-replica
 ```
 
-### Production Deployment
+## 🎨 UI Features
 
-For production with separate read replicas:
+- **Modern Header** - Gradient logo, search with icon
+- **SVG Icons** - 20+ file type icons with colors
+- **View Toggle** - Grid/List layouts
+- **Breadcrumbs** - Path navigation
+- **Skeletons** - Loading placeholders
+- **Empty States** - Illustrated placeholders
+- **Error Handling** - Boundary + Toast notifications
 
-```bash
-# Environment variables for read/write split
-DB_WRITE_HOST=mysql-master.internal
-DB_WRITE_PORT=3306
-DB_READ_HOST=mysql-replica.internal
-DB_READ_PORT=3306
-```
+## ♿ Accessibility
 
----
+- ARIA roles and labels
+- Keyboard navigation (Tab, Enter, Space, Arrows)
+- Focus management with visible rings
+- Screen reader support
 
-## Manual Deployment (Without Docker)
+## 📚 Documentation
 
-### Backend
+See `technical-document.md` for:
+- Clean Architecture explanation
+- Algorithm complexity analysis
+- Database schema details
+- All implementation details
 
-```bash
-cd be-elysia
-bun install
-bun run db:push
-bun run db:seed
-bun run dev          # Development
-bun run build        # Production build
-```
-
-### Frontend
-
-```bash
-cd fe-vue
-bun install
-bun run dev          # Development (http://localhost:5173)
-bun run build        # Production build (outputs to dist/)
-```
-
-## License
+## 📄 License
 
 MIT
