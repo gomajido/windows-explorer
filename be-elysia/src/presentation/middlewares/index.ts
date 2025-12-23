@@ -1,4 +1,4 @@
-export { authMiddleware, generateTestToken, requireAuth, getAuthUser } from "./authMiddleware";
-export { loggerMiddleware } from "./loggerMiddleware";
+export { authMiddleware, generateTestToken, requireAuth } from "./authMiddleware";
 export { errorMiddleware } from "./errorMiddleware";
-export { rateLimitMiddleware, apiRateLimit, strictRateLimit } from "./rateLimitMiddleware";
+export { loggerMiddleware } from "./loggerMiddleware";
+export { redisRateLimitMiddleware } from "./redisRateLimitMiddleware";

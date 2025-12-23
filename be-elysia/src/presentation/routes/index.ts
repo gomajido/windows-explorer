@@ -2,7 +2,7 @@ import { Elysia } from "elysia";
 import { swagger } from "@elysiajs/swagger";
 import { v1Routes } from "./v1";
 import { healthRoutes } from "./healthRoutes";
-import { loggerMiddleware, errorMiddleware, apiRateLimit } from "../middlewares";
+import { loggerMiddleware, errorMiddleware, redisRateLimitMiddleware } from "../middlewares";
 
 export const apiRoutes = new Elysia({ prefix: "/api" })
   .use(swagger({
@@ -10,7 +10,7 @@ export const apiRoutes = new Elysia({ prefix: "/api" })
       info: {
         title: "Folder Explorer API",
         version: "1.0.0",
-        description: "Enterprise-grade folder management API",
+        description: "Enterprise-grade folder management API with Redis-based rate limiting. Bun provides native gzip compression automatically.",
       },
       tags: [
         { name: "folders", description: "Folder operations" },
@@ -21,6 +21,6 @@ export const apiRoutes = new Elysia({ prefix: "/api" })
   }))
   .use(loggerMiddleware())
   .use(errorMiddleware())
-  .use(apiRateLimit)
+  .use(redisRateLimitMiddleware({ windowMs: 60000, maxRequests: 100 }))
   .use(healthRoutes)
   .use(v1Routes);

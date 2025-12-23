@@ -1,6 +1,7 @@
 import { ref, computed } from "vue";
 import type { Folder, FolderTreeNode } from "@/domain/entities/Folder";
 import { FolderApi } from "@/infrastructure/api/FolderApi";
+import { useErrorHandler } from "@/application/composables/useErrorHandler";
 
 // Extended tree node with loading state for lazy loading
 export interface LazyTreeNode extends FolderTreeNode {
@@ -9,6 +10,8 @@ export interface LazyTreeNode extends FolderTreeNode {
 }
 
 export function useFolderService() {
+  const { handleApiError } = useErrorHandler();
+  
   const tree = ref<LazyTreeNode[]>([]);
   const selectedFolder = ref<Folder | null>(null);
   const children = ref<Folder[]>([]);
@@ -42,6 +45,7 @@ export function useFolderService() {
         }));
     } catch (err) {
       error.value = err instanceof Error ? err.message : "Failed to load tree";
+      handleApiError(err);
     } finally {
       isLoading.value = false;
     }

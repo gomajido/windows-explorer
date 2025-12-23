@@ -1,7 +1,11 @@
 <script setup lang="ts">
-// App.vue - Router container only
+import ErrorBoundary from "@/presentation/components/ErrorBoundary.vue";
+import ErrorToast from "@/presentation/components/ErrorToast.vue";
 </script>
 
 <template>
-  <RouterView />
+  <ErrorBoundary>
+    <RouterView />
+    <ErrorToast />
+  </ErrorBoundary>
 </template>

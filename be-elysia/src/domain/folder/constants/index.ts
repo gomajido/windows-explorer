@@ -43,4 +43,6 @@ export const ERROR_MESSAGES = {
   SEARCH_QUERY_EMPTY: "Search query cannot be empty",
 } as const;
 
-export const MAX_SEARCH_RESULTS = FOLDER_DEFAULTS.SEARCH_LIMIT;
+export const MAX_SEARCH_RESULTS = 50;
+export const MAX_QUERY_LIMIT = 1000; // Hard limit to prevent resource exhaustion
+export const DEFAULT_PAGE_SIZE = 20;
