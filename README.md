@@ -190,77 +190,160 @@ DATABASE_URL=mysql://root:password@localhost:3309/folder_explorer
 PORT=3001
 ```
 
-## Deployment
+## Docker Deployment (Recommended)
 
-### Docker Deployment (Recommended)
+### Prerequisites
 
-The project includes Docker configuration for easy deployment.
-
-**Prerequisites:**
 - Docker 20.10+
 - Docker Compose 2.0+
 
-**Quick Start:**
+### Quick Start (3 Steps)
 
 ```bash
-# Start all services (MySQL, Backend, Frontend)
-docker-compose up -d
+# Step 1: Start all services
+docker-compose up -d --build
 
-# View logs
-docker-compose logs -f
+# Step 2: Create database table (run from local machine)
+cd be-elysia
+bun run db:push
 
-# Stop all services
-docker-compose down
+# Step 3: Seed sample data (485 folders/files)
+bun run db:seed
 ```
 
-**Services:**
+**That's it!** Open http://localhost:8080 to see the app.
+
+### Docker Services
 
 | Service | Container | Port | Description |
 |---------|-----------|------|-------------|
-| MySQL | folder-explorer-db | 3309 | Database |
-| Backend | folder-explorer-api | 3001 | Elysia API |
-| Frontend | folder-explorer-web | 80 | Vue + Nginx |
+| **Frontend** | folder-explorer-web | 8080 | Vue.js + Nginx |
+| **Backend** | folder-explorer-api | 3001 | Elysia.js API |
+| **Database** | folder-explorer-db | 3309 | MySQL 8.0 |
+| **Cache** | folder-explorer-cache | 6379 | Redis 7 |
 
-**Access:**
-- Frontend: http://localhost
-- API: http://localhost:3001
-- Database: `mysql://root:root@localhost:3309/folder_explorer`
+### Access URLs
 
-### Database Migration (Production)
+| Service | URL |
+|---------|-----|
+| Frontend | http://localhost:8080 |
+| Backend API | http://localhost:3001/api |
+| Swagger Docs | http://localhost:3001/api/docs |
+| Health Check | http://localhost:3001/health |
+
+### Docker Commands
 
 ```bash
-# After containers are running, run migrations
-docker exec folder-explorer-api bun run db:push
+# Start services
+docker-compose up -d
 
-# Seed with sample data (optional)
-docker exec folder-explorer-api bun run db:seed
+# Start with rebuild
+docker-compose up -d --build
+
+# View logs (all services)
+docker-compose logs -f
+
+# View specific service logs
+docker-compose logs -f backend
+docker-compose logs -f frontend
+docker-compose logs -f mysql
+docker-compose logs -f redis
+
+# Stop all services
+docker-compose down
+
+# Stop and remove volumes (reset database)
+docker-compose down -v
+
+# Check service status
+docker-compose ps
 ```
 
-### Production Environment Variables
+### Database Commands
+
+**Important:** Run these from your local machine (not inside Docker), as they connect to the Docker MySQL via port 3309.
 
 ```bash
-# docker-compose.yml overrides
-DATABASE_URL=mysql://root:root@mysql:3306/folder_explorer
+cd be-elysia
+
+# Push schema to database (creates tables)
+bun run db:push
+
+# Seed database with 485 sample folders/files
+bun run db:seed
+
+# Open Drizzle Studio (database GUI)
+bun run db:studio
+```
+
+### Environment Variables
+
+The Docker containers use these default values:
+
+```bash
+# Database
+DB_HOST=mysql              # Docker service name
+DB_PORT=3306               # Internal MySQL port
+DB_USER=root
+DB_PASSWORD=root
+DB_NAME=folder_explorer
+
+# Redis
+REDIS_HOST=redis           # Docker service name
+REDIS_PORT=6379
+
+# Backend
 PORT=3001
 NODE_ENV=production
 ```
 
-### Manual Deployment
+For local development connecting to Docker services:
 
-**Backend:**
 ```bash
-cd be-elysia
-bun install --production
-bun run build
-NODE_ENV=production bun run dist/index.js
+# be-elysia/.env
+DB_HOST=127.0.0.1
+DB_PORT=3309               # Exposed port
+DB_USER=root
+DB_PASSWORD=root
+DB_NAME=folder_explorer
+REDIS_HOST=127.0.0.1
+REDIS_PORT=6379
 ```
 
-**Frontend:**
+### Production Deployment
+
+For production with separate read replicas:
+
+```bash
+# Environment variables for read/write split
+DB_WRITE_HOST=mysql-master.internal
+DB_WRITE_PORT=3306
+DB_READ_HOST=mysql-replica.internal
+DB_READ_PORT=3306
+```
+
+---
+
+## Manual Deployment (Without Docker)
+
+### Backend
+
+```bash
+cd be-elysia
+bun install
+bun run db:push
+bun run db:seed
+bun run dev          # Development
+bun run build        # Production build
+```
+
+### Frontend
+
 ```bash
 cd fe-vue
 bun install
-bun run build
-# Serve dist/ folder with Nginx or any static file server
+bun run dev          # Development (http://localhost:5173)
+bun run build        # Production build (outputs to dist/)
 ```
 
 ## License
