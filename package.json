@@ -1,0 +1,25 @@
+{
+  "name": "file-explorer",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "be-elysia",
+    "fe-vue"
+  ],
+  "scripts": {
+    "dev": "bun run dev:be & bun run dev:fe",
+    "dev:be": "bun run --cwd be-elysia dev",
+    "dev:fe": "bun run --cwd fe-vue dev",
+    "build": "bun run --cwd be-elysia build && bun run --cwd fe-vue build",
+    "start": "bun run --cwd be-elysia start"
+  },
+  "description": "Windows Explorer clone with Clean Architecture using Elysia.js and Vue.js",
+  "keywords": [
+    "file-explorer",
+    "clean-architecture",
+    "elysia",
+    "vue",
+    "typescript",
+    "monorepo"
+  ]
+}

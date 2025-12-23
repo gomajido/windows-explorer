@@ -1,0 +1,8 @@
+node_modules
+be-elysia/.env*
+be-elysia/node_modules
+fe-vue/node_modules
+fe-vue/dist
+fe-vue/.vite
+fe-vue/.env*
+fe-vue/.vite/deps

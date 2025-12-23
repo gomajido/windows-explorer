@@ -1,0 +1,1 @@
+export { IFolderRepository } from "./IFolderRepository";

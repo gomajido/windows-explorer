@@ -1,0 +1,94 @@
+<script setup lang="ts">
+import { ref, computed } from "vue";
+import type { LazyTreeNode } from "@/application/services/FolderService";
+
+const props = defineProps<{
+  node: LazyTreeNode;
+  selectedId: number | null;
+  level: number;
+}>();
+
+const emit = defineEmits<{
+  select: [folder: LazyTreeNode];
+  expand: [node: LazyTreeNode];
+}>();
+
+const isExpanded = ref(false);
+
+// Check if node has children or hasn't been loaded yet (assume it might have children)
+const hasChildren = computed(() => props.node.children.length > 0 || !props.node.isLoaded);
+const isSelected = computed(() => props.selectedId === props.node.id);
+const isLoading = computed(() => props.node.isExpanding);
+
+async function toggle() {
+  if (!isExpanded.value) {
+    // Expanding - load children if not loaded
+    if (!props.node.isLoaded) {
+      emit("expand", props.node);
+    }
+  }
+  isExpanded.value = !isExpanded.value;
+}
+
+function select() {
+  emit("select", props.node);
+}
+</script>
+
+<template>
+  <div class="folder-node">
+    <div
+      class="folder-row flex items-center gap-1 px-2 py-1 cursor-pointer hover:bg-gray-100 rounded"
+      :class="{ 'bg-blue-100': isSelected }"
+      :style="{ paddingLeft: `${level * 16 + 8}px` }"
+      @click="select"
+    >
+      <button
+        v-if="hasChildren"
+        class="w-4 h-4 flex items-center justify-center text-gray-500 hover:text-gray-700"
+        @click.stop="toggle"
+      >
+        <svg
+          v-if="isLoading"
+          class="w-3 h-3 animate-spin"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <circle cx="12" cy="12" r="10" stroke-width="2" stroke-dasharray="32" stroke-dashoffset="12" />
+        </svg>
+        <svg
+          v-else
+          class="w-3 h-3 transition-transform"
+          :class="{ 'rotate-90': isExpanded }"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+      <span v-else class="w-4"></span>
+      
+      <svg class="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+        <path
+          d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"
+        />
+      </svg>
+      
+      <span class="text-sm truncate">{{ node.name }}</span>
+    </div>
+    
+    <div v-if="isExpanded && node.children.length > 0" class="children">
+      <FolderTreeNode
+        v-for="child in node.children"
+        :key="child.id"
+        :node="child"
+        :selected-id="selectedId"
+        :level="level + 1"
+        @select="emit('select', $event)"
+        @expand="emit('expand', $event)"
+      />
+    </div>
+  </div>
+</template>
