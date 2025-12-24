@@ -1,7 +1,20 @@
 import { test, expect } from "@playwright/test";
 
+// Mock API responses
+const mockFolders = [
+  { id: 1, name: "Documents", parentId: null, isFolder: true, createdAt: "2025-01-01", updatedAt: "2025-01-01", children: [] },
+];
+
 test.describe("Search Functionality", () => {
   test.beforeEach(async ({ page }) => {
+    // Mock API endpoints
+    await page.route("**/api/**", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ httpCode: 200, code: "SUCCESS", data: mockFolders }),
+      });
+    });
     await page.goto("/");
   });
 
