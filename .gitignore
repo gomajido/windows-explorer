@@ -1,8 +1,38 @@
+# Dependencies
 node_modules
-be-elysia/.env*
+bun.lockb
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Backend
 be-elysia/node_modules
+be-elysia/.env*
+be-elysia/dist
+
+# Frontend
 fe-vue/node_modules
 fe-vue/dist
 fe-vue/.vite
 fe-vue/.env*
-fe-vue/.vite/deps
+
+# Playwright
+fe-vue/playwright-report/
+fe-vue/playwright/.cache/
+fe-vue/test-results/
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+
+# Build
+*.tsbuildinfo
