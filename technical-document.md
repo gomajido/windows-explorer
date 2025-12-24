@@ -659,6 +659,94 @@ docker-compose down -v
 
 ---
 
+## Testing
+
+### Unit Tests (Backend)
+
+**Location**: `be-elysia/src/__tests__/`
+
+```
+__tests__/
+├── helpers/
+│   └── mockRepository.ts      # Shared mocks
+├── domain/
+│   └── Folder.test.ts         # Domain constants
+├── routes/
+│   └── folderRoutes.test.ts   # API integration
+└── usecases/
+    ├── CreateFolder.test.ts
+    ├── DeleteFolder.test.ts
+    ├── GetChildren.test.ts
+    ├── GetFolderTree.test.ts
+    ├── SearchFolders.test.ts
+    └── UpdateFolder.test.ts
+```
+
+**Run Tests:**
+```bash
+cd be-elysia && bun test
+```
+
+**Coverage**: 28 tests
+
+| Category | Tests | Coverage |
+|----------|-------|----------|
+| Use Cases | 18 | CRUD operations |
+| Domain | 4 | Constants validation |
+| Routes | 6 | API integration |
+
+### E2E Tests (Frontend - Playwright)
+
+**Location**: `fe-vue/e2e/`
+
+```
+e2e/
+├── app.spec.ts              # App loading
+├── folder-navigation.spec.ts # Navigation
+├── search.spec.ts           # Search
+└── accessibility.spec.ts    # A11y
+```
+
+**Run Tests:**
+```bash
+cd fe-vue
+
+# Install browsers (first time)
+bunx playwright install
+
+# Run tests
+bun run test:e2e
+
+# Run with UI
+bun run test:e2e:ui
+
+# Run with browser visible
+bun run test:e2e:headed
+```
+
+**Coverage**: 16 tests
+
+| Suite | Tests | Coverage |
+|-------|-------|----------|
+| App | 4 | Loading, sidebar, search input |
+| Navigation | 4 | Expand, select, view toggle |
+| Search | 4 | Input, focus, typing |
+| Accessibility | 4 | ARIA, keyboard, focus |
+
+### CI/CD (GitHub Actions)
+
+**Location**: `.github/workflows/ci.yml`
+
+| Job | Purpose |
+|-----|---------|
+| `test-backend` | Run unit tests |
+| `test-frontend` | Type check + build |
+| `e2e-tests` | Playwright tests |
+| `lint` | ESLint checks |
+
+**Triggers**: Push/PR to `main`, `master`, `develop`
+
+---
 
 ## License
 

@@ -195,6 +195,51 @@ DB_READ_HOST=mysql-replica
 - Focus management with visible rings
 - Screen reader support
 
+## 🧪 Testing
+
+### Unit Tests (Backend)
+
+```bash
+cd be-elysia && bun test
+```
+
+28 tests covering:
+- Use Cases (CRUD operations)
+- Domain constants
+- API routes integration
+
+### E2E Tests (Frontend)
+
+```bash
+cd fe-vue
+
+# Install Playwright browsers (first time)
+bunx playwright install
+
+# Run E2E tests
+bun run test:e2e
+
+# Run with UI
+bun run test:e2e:ui
+
+# Run with browser visible
+bun run test:e2e:headed
+```
+
+16 tests covering:
+- App loading & navigation
+- Folder tree interactions
+- Search functionality
+- Accessibility (ARIA, keyboard)
+
+### CI/CD
+
+GitHub Actions runs on every push:
+- ✅ Backend tests
+- ✅ Frontend build
+- ✅ E2E tests (Playwright)
+- ✅ Lint checks
+
 ## 📚 Documentation
 
 See `technical-document.md` for:
