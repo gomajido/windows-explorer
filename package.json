@@ -11,7 +11,13 @@
     "dev:be": "bun run --cwd be-elysia dev",
     "dev:fe": "bun run --cwd fe-vue dev",
     "build": "bun run --cwd be-elysia build && bun run --cwd fe-vue build",
-    "start": "bun run --cwd be-elysia start"
+    "start": "bun run --cwd be-elysia start",
+    "test": "bun run test:be && bun run test:fe",
+    "test:be": "bun test --cwd be-elysia",
+    "test:fe": "bun test --cwd fe-vue",
+    "lint": "bun run lint:be && bun run lint:fe",
+    "lint:be": "bun run --cwd be-elysia lint",
+    "lint:fe": "bun run --cwd fe-vue lint"
   },
   "description": "Windows Explorer clone with Clean Architecture using Elysia.js and Vue.js",
   "keywords": [

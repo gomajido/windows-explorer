@@ -1,33 +1,35 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { computed } from "vue";
 import type { LazyTreeNode } from "@/application/services/FolderService";
 
 const props = defineProps<{
   node: LazyTreeNode;
   selectedId: number | null;
+  expandedIds: number[];
   level: number;
 }>();
 
 const emit = defineEmits<{
   select: [folder: LazyTreeNode];
   expand: [node: LazyTreeNode];
+  toggle: [folderId: number];
 }>();
 
-const isExpanded = ref(false);
+const isExpanded = computed(() => props.expandedIds.includes(props.node.id));
 
 // Check if node has children or hasn't been loaded yet (assume it might have children)
 const hasChildren = computed(() => props.node.children.length > 0 || !props.node.isLoaded);
 const isSelected = computed(() => props.selectedId === props.node.id);
 const isLoading = computed(() => props.node.isExpanding);
 
-async function toggle() {
+function toggle() {
   if (!isExpanded.value) {
     // Expanding - load children if not loaded
     if (!props.node.isLoaded) {
       emit("expand", props.node);
     }
   }
-  isExpanded.value = !isExpanded.value;
+  emit("toggle", props.node.id);
 }
 
 function select() {
@@ -90,9 +92,11 @@ function select() {
         :key="child.id"
         :node="child"
         :selected-id="selectedId"
+        :expanded-ids="expandedIds"
         :level="level + 1"
         @select="emit('select', $event)"
         @expand="emit('expand', $event)"
+        @toggle="emit('toggle', $event)"
       />
     </ul>
   </li>

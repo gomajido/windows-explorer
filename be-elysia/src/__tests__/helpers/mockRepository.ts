@@ -19,6 +19,7 @@ export const createMockRepository = (overrides: Partial<IFolderRepository> = {})
   findByParentId: mock(() => Promise.resolve([])),
   getFolderTree: mock(() => Promise.resolve([])),
   search: mock(() => Promise.resolve([])),
+  searchWithCursor: mock(() => Promise.resolve({ data: [], cursor: { next: null, hasMore: false } })),
   count: mock(() => Promise.resolve(0)),
   create: mock(() => Promise.resolve(createMockFolder())),
   update: mock(() => Promise.resolve(createMockFolder())),

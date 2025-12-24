@@ -11,6 +11,7 @@ const {
   tree,
   selectedFolder,
   selectedFolderId,
+  expandedIds,
   children,
   searchResults,
   hasMoreResults,
@@ -21,6 +22,7 @@ const {
   loadTree,
   loadNodeChildren,
   selectFolder,
+  toggleExpanded,
   search,
   loadMoreResults,
   clearSearch,
@@ -58,6 +60,10 @@ function handleSelectFolder(folder: LazyTreeNode) {
 
 function handleExpandNode(node: LazyTreeNode) {
   loadNodeChildren(node);
+}
+
+function handleToggleExpand(folderId: number) {
+  toggleExpanded(folderId);
 }
 
 function handleOpenFolder(folder: Folder) {
@@ -179,9 +185,11 @@ onMounted(() => {
         class="w-64 flex-shrink-0"
         :tree="tree"
         :selected-id="selectedFolderId"
+        :expanded-ids="expandedIds"
         :is-loading="isLoading"
         @select="handleSelectFolder"
         @expand="handleExpandNode"
+        @toggle="handleToggleExpand"
       />
 
       <SearchResults

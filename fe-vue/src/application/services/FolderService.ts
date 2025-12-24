@@ -14,6 +14,7 @@ export function useFolderService() {
   
   const tree = ref<LazyTreeNode[]>([]);
   const selectedFolder = ref<Folder | null>(null);
+  const expandedIds = ref<Set<number>>(new Set());
   const children = ref<Folder[]>([]);
   const searchResults = ref<Folder[]>([]);
   const searchQuery = ref("");
@@ -25,6 +26,7 @@ export function useFolderService() {
   const error = ref<string | null>(null);
 
   const selectedFolderId = computed(() => selectedFolder.value?.id ?? null);
+  const expandedIdsArray = computed(() => Array.from(expandedIds.value));
 
   /**
    * Load root folders only (lazy tree - scalable)
@@ -77,9 +79,59 @@ export function useFolderService() {
     }
   }
 
+  /**
+   * Toggle expanded state for a folder
+   */
+  function toggleExpanded(folderId: number) {
+    if (expandedIds.value.has(folderId)) {
+      expandedIds.value.delete(folderId);
+    } else {
+      expandedIds.value.add(folderId);
+    }
+    // Trigger reactivity
+    expandedIds.value = new Set(expandedIds.value);
+  }
+
+  /**
+   * Expand a folder (add to expanded set)
+   */
+  function expandFolder(folderId: number) {
+    if (!expandedIds.value.has(folderId)) {
+      expandedIds.value.add(folderId);
+      expandedIds.value = new Set(expandedIds.value);
+    }
+  }
+
+  /**
+   * Find and expand all parent folders for a given folder
+   */
+  function expandParentPath(folderId: number) {
+    // Find the folder in the tree and expand all parents
+    function findAndExpand(nodes: LazyTreeNode[], targetId: number, path: number[] = []): boolean {
+      for (const node of nodes) {
+        if (node.id === targetId) {
+          // Found it! Expand all folders in the path
+          path.forEach(id => expandedIds.value.add(id));
+          expandedIds.value = new Set(expandedIds.value);
+          return true;
+        }
+        if (node.children.length > 0) {
+          if (findAndExpand(node.children, targetId, [...path, node.id])) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+    findAndExpand(tree.value, folderId);
+  }
+
   async function selectFolder(folder: Folder | null) {
     selectedFolder.value = folder;
     if (folder) {
+      // Expand this folder and its parents in the tree
+      expandFolder(folder.id);
+      expandParentPath(folder.id);
       await loadChildren(folder.id);
     } else {
       children.value = [];
@@ -193,6 +245,7 @@ export function useFolderService() {
     tree,
     selectedFolder,
     selectedFolderId,
+    expandedIds: expandedIdsArray,
     children,
     searchResults,
     searchQuery,
@@ -205,6 +258,8 @@ export function useFolderService() {
     loadNodeChildren,
     selectFolder,
     loadChildren,
+    toggleExpanded,
+    expandFolder,
     createFolder,
     deleteFolder,
     renameFolder,

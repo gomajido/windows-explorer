@@ -6,12 +6,14 @@ import SkeletonLoader from "./SkeletonLoader.vue";
 defineProps<{
   tree: LazyTreeNode[];
   selectedId: number | null;
+  expandedIds: number[];
   isLoading: boolean;
 }>();
 
 const emit = defineEmits<{
   select: [folder: LazyTreeNode];
   expand: [node: LazyTreeNode];
+  toggle: [folderId: number];
 }>();
 </script>
 
@@ -33,9 +35,11 @@ const emit = defineEmits<{
         :key="node.id"
         :node="node"
         :selected-id="selectedId"
+        :expanded-ids="expandedIds"
         :level="0"
         @select="emit('select', $event)"
         @expand="emit('expand', $event)"
+        @toggle="emit('toggle', $event)"
       />
     </ul>
   </aside>
