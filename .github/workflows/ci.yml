@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+
+jobs:
+  test-backend:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+        working-directory: ./be-elysia
+
+      - name: Run tests
+        run: bun test
+        working-directory: ./be-elysia
+
+      - name: Build
+        run: bun run build
+        working-directory: ./be-elysia
+
+  test-frontend:
+    name: Frontend Tests & Build
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+        working-directory: ./fe-vue
+
+      - name: Type check
+        run: bunx vue-tsc --noEmit
+        working-directory: ./fe-vue
+
+      - name: Build
+        run: bun run build
+        working-directory: ./fe-vue
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install backend dependencies
+        run: bun install
+        working-directory: ./be-elysia
+
+      - name: Lint backend
+        run: bun run lint
+        working-directory: ./be-elysia
+        continue-on-error: true
+
+      - name: Install frontend dependencies
+        run: bun install
+        working-directory: ./fe-vue
+
+      - name: Lint frontend
+        run: bun run lint
+        working-directory: ./fe-vue
+        continue-on-error: true

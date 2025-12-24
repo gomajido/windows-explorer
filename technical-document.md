@@ -189,25 +189,77 @@ windows-explorer/
 
 ### Response Format
 
-```json
-{
-  "success": true,
-  "data": { ... },
-  "error": null
+All API responses follow a consistent structure:
+
+```typescript
+interface ApiResponse<T> {
+  httpCode: number;      // HTTP status code (200, 201, 400, 404, 500)
+  message: string;       // Human-readable message
+  code: string;          // Response code (SUCCESS, CREATED, NOT_FOUND, etc.)
+  data?: T;              // Response payload
+  detail?: string;       // Additional error details
+  pagination?: {         // For paginated responses
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+  errors?: ErrorInfo[];  // Validation errors
 }
 ```
+
+**Success Response Example:**
+```json
+{
+  "httpCode": 200,
+  "message": "Folder tree retrieved",
+  "code": "SUCCESS",
+  "data": [...]
+}
+```
+
+**Error Response Example:**
+```json
+{
+  "httpCode": 404,
+  "message": "Resource not found",
+  "code": "NOT_FOUND",
+  "detail": "Folder with ID 999 does not exist",
+  "data": null
+}
+```
+
+### Response Codes
+
+| Code | HTTP | Description |
+|------|------|-------------|
+| `SUCCESS` | 200 | Request successful |
+| `CREATED` | 201 | Resource created |
+| `UPDATED` | 200 | Resource updated |
+| `DELETED` | 200 | Resource deleted |
+| `NOT_FOUND` | 404 | Resource not found |
+| `BAD_REQUEST` | 400 | Invalid request |
+| `UNAUTHORIZED` | 401 | Authentication required |
+| `FORBIDDEN` | 403 | Access denied |
+| `INTERNAL_ERROR` | 500 | Server error |
 
 ### Pagination (Cursor-based)
 
 ```
-GET /folders/:id/children?cursor=123&limit=20
+GET /folders/search/cursor?q=doc&cursor=123&limit=20
 
 Response:
 {
-  "success": true,
-  "data": [...],
-  "nextCursor": 143,
-  "hasMore": true
+  "httpCode": 200,
+  "message": "Search completed",
+  "code": "SUCCESS",
+  "data": {
+    "data": [...],
+    "cursor": {
+      "next": "143",
+      "hasMore": true
+    }
+  }
 }
 ```
 
@@ -607,14 +659,6 @@ docker-compose down -v
 
 ---
 
-## Final Scores
-
-| Area | Score | Key Features |
-|------|-------|--------------|
-| **Backend** | 9/10 | Cursor pagination, Redis cache, Rate limiting, Read/Write split |
-| **Frontend** | 9.6/10 | Modern UI, SVG icons, Skeletons, Error handling, Accessibility |
-
----
 
 ## License
 
