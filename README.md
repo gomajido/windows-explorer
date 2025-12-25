@@ -75,119 +75,7 @@ bun run db:push
 bun run db:seed
 ```
 
-### Available Commands
-
-```bash
-bun run db:push       # Create/Update tables
-bun run db:generate   # Generate migrations
-bun run db:migrate    # Run migrations
-bun run db:seed       # Seed sample data
-bun run db:studio     # Open Drizzle Studio
-```
-
-### Database Schema
-
-**Tables:**
-- `folders` - Folders and files
-
-**Indexes:**
-- `parent_id_idx`
-- `name_idx`
-- `parent_active_name_idx`
-- `folder_active_name_idx`
-- `active_name_idx`
-
-### Manual Database Access
-
-```bash
-# Connect to MySQL via Docker
-docker exec -it folder-explorer-db mysql -uroot -proot folder_explorer
-
-# Useful queries
-SHOW TABLES;
-DESCRIBE folders;
-SELECT COUNT(*) FROM folders;
-SELECT * FROM folders WHERE parent_id IS NULL;
-```
-
-### Database Reset
-
-```bash
-# Method 1: Via Docker (complete reset)
-docker-compose down -v
-docker-compose up -d
-cd be-elysia
-bun run db:push
-bun run db:seed
-
-# Method 2: Via SQL (keep structure)
-docker exec folder-explorer-db mysql -uroot -proot folder_explorer -e "TRUNCATE TABLE folders;"
-cd be-elysia
-bun run db:seed
-```
-
----
-
-## ▶️ Running the Application
-
-### Development Mode
-
-**Backend:**
-```bash
-cd be-elysia
-bun install
-bun run dev
-# Runs on http://localhost:3001
-```
-
-**Frontend:**
-```bash
-cd fe-vue
-bun install
-bun run dev
-# Runs on http://localhost:8080
-```
-
-### Production Mode
-
-**Using Docker (Recommended):**
-```bash
-docker-compose up -d --build
-```
-
-**Manual Build:**
-```bash
-# Backend
-cd be-elysia
-bun install
-bun run build
-bun run start
-
-# Frontend
-cd fe-vue
-bun install
-bun run build
-# Serve dist/ with nginx or static server
-```
-
-### Verifying Installation
-
-```bash
-# Check backend health
-curl http://localhost:3001/health
-
-# Check API response
-curl http://localhost:3001/api/v1/folders/tree
-
-# Check frontend
-open http://localhost:8080
-```
-
----
-
 ## 🧪 Testing
-
-**Note:** Testing requires **Option 2 (Full Development Setup)** as tests need local dependencies.
 
 ### Backend Tests (Unit + Integration)
 
@@ -204,17 +92,6 @@ bun test --coverage
 bun test src/__tests__/usecases/GetFolderTree.test.ts
 ```
 
-**Test Coverage:**
-- ✅ **53 tests passing** (verified)
-- Use Cases (CRUD operations)
-- Domain constants validation
-- API routes integration
-- Repository operations
-
-**Dependencies:**
-- All dependencies included in `package.json`
-- No additional setup required
-
 ### Frontend Unit Tests
 
 ```bash
@@ -226,19 +103,6 @@ bun test src/__tests__
 # Run with watch mode
 bun test --watch
 ```
-
-**Test Coverage:**
-- ✅ **21 tests passing** (verified)
-- FolderService (composable logic)
-- Component tests (Breadcrumb skipped - covered by E2E)
-- API mocking and error handling
-
-**Dependencies:**
-- `@vue/test-utils` - Vue component testing
-- `happy-dom` - DOM environment for testing
-- All included in `package.json`
-
-**Note:** Breadcrumb component tests (5 tests) are skipped due to known Bun + Vue Test Utils + lucide-vue-next compatibility issue. These are fully covered by E2E tests.
 
 ### Frontend E2E Tests (Playwright)
 
