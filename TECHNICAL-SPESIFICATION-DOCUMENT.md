@@ -10,7 +10,7 @@
 This technical document explains the architecture, design decisions, and implementation details of a Windows Explorer clone built with Clean Architecture and production-grade optimizations.
 
 **Key Achievements:**
-- ✅ **Estimated 30-75x faster queries** through database optimization and caching
+- ✅ **Faster queries** through database optimization and caching
 - ✅ **1,167 rows seeded** (1000+ target achieved)
 - ✅ **74/74 tests passing** (53 backend + 21 frontend)
 - ✅ **Zero errors** in fresh clone setup (tested)
@@ -396,21 +396,51 @@ See [README.md - Testing](./README.md#testing) for detailed test documentation.
 
 ## Algorithms
 
-### 1. Tree Building Algorithm - O(n)
+### 1. Tree Building Algorithm - Lazy Loading (Optimized)
 
 **Location**: `FolderRepository.getFolderTree()`
 
+**Current Implementation** (Optimized for scale):
 ```typescript
-// Step 1: Fetch all folders (single query)
+// Load only root folders (lazy loading approach)
+const rootFolders = await db.select()
+  .from(folders)
+  .where(and(
+    eq(folders.isFolder, true),
+    isNull(folders.parentId),
+    isNull(folders.deletedAt)
+  ))
+  .orderBy(folders.name)
+  .limit(100); // Limit for initial load
+
+// Batch check if roots have children
+const rootIds = rootFolders.map(f => f.id);
+const childCounts = await getChildCounts(rootIds);
+
+return rootFolders.map(record => ({
+  ...record,
+  children: [],
+  hasChildren: (childCounts.get(record.id) || 0) > 0,
+}));
+```
+
+**Complexity**:
+- Time: O(1) - Fixed limit of 100 roots
+- Space: O(1) - Only root folders loaded
+- Children loaded on-demand when expanded
+
+**Legacy Full Tree** (`getFullFolderTree()` - USE ONLY FOR SMALL DATASETS):
+```typescript
+// Fetch all folders
 const allFolders = await db.select().from(folders);
 
-// Step 2: Create Map for O(1) lookup
+// Create Map for O(1) lookup
 const folderMap = new Map<number, FolderTreeNode>();
 for (const record of allFolders) {
   folderMap.set(record.id, { ...record, children: [] });
 }
 
-// Step 3: Link children to parents
+// Link children to parents
 const rootFolders: FolderTreeNode[] = [];
 for (const record of allFolders) {
   const node = folderMap.get(record.id);
@@ -421,69 +451,127 @@ for (const record of allFolders) {
     parent?.children.push(node);
   }
 }
-
-return rootFolders;
 ```
 
-**Complexity**:
-- Time: O(n) - Two passes through data
+**Legacy Complexity**:
+- Time: O(n) - Two passes through all data
 - Space: O(n) - Map stores all nodes
 
-### 2. Recursive Delete - DFS
+### 2. Batch Delete with BFS - O(n)
 
-**Location**: `FolderRepository.deleteRecursive()`
+**Location**: `FolderRepository.delete()` / `hardDelete()`
 
+**Implementation** (Batched BFS approach):
 ```typescript
-async deleteRecursive(id: number): Promise<void> {
-  // Get all direct children
-  const children = await db.select()
-    .from(folders)
-    .where(eq(folders.parentId, id));
-  
-  // Recursively delete each child first (DFS)
-  for (const child of children) {
-    await this.deleteRecursive(child.id);
+// Step 1: Collect all descendant IDs using BFS
+async collectDescendantIds(parentId: number): Promise<number[]> {
+  const allIds: number[] = [];
+  let currentParentIds = [parentId];
+
+  while (currentParentIds.length > 0) {
+    // Batch query for all children at current level
+    const children = await db.select({ id: folders.id })
+      .from(folders)
+      .where(inArray(folders.parentId, currentParentIds));
+
+    const childIds = children.map(c => c.id);
+    allIds.push(...childIds);
+    currentParentIds = childIds; // Move to next level
   }
-  
-  // Then delete self
-  await db.delete(folders).where(eq(folders.id, id));
+
+  return allIds;
+}
+
+// Step 2: Batch delete all collected IDs
+async delete(id: number): Promise<void> {
+  await withTransaction(async (tx) => {
+    const idsToDelete = await this.collectDescendantIds(id);
+    idsToDelete.push(id); // Include parent
+
+    // Single batch update (soft delete)
+    await tx.update(folders)
+      .set({ deletedAt: new Date() })
+      .where(inArray(folders.id, idsToDelete));
+  });
 }
 ```
+
+**Why BFS over DFS?**
+- Batched queries (fewer DB round-trips)
+- Better for wide, shallow trees
+- Easier to implement without recursion limits
 
 ### 3. Cursor Pagination - O(1)
 
+**Location**: `FolderRepository.findByParentIdWithCursor()` / `searchWithCursor()`
+
 ```typescript
-async findWithCursor(parentId: number, cursor?: number, limit = 20) {
-  const query = db.select()
+async findByParentIdWithCursor(
+  parentId: number | null,
+  options: { limit?: number; cursor?: string }
+): Promise<CursorPaginatedResult<Folder>> {
+  const { limit = 50, cursor } = options;
+  
+  // Decode base64 cursor
+  let lastId: number | null = null;
+  if (cursor) {
+    try {
+      lastId = parseInt(Buffer.from(cursor, "base64").toString("utf-8"), 10);
+    } catch {
+      lastId = null;
+    }
+  }
+
+  // Build query with cursor condition
+  const baseConditions = [
+    parentId === null 
+      ? isNull(folders.parentId)
+      : eq(folders.parentId, parentId),
+    isNull(folders.deletedAt)
+  ];
+  
+  if (lastId !== null) {
+    baseConditions.push(gt(folders.id, lastId));
+  }
+
+  // Fetch limit + 1 to check if more results exist
+  const records = await db.select()
     .from(folders)
-    .where(
-      and(
-        eq(folders.parentId, parentId),
-        cursor ? gt(folders.id, cursor) : undefined
-      )
-    )
-    .orderBy(folders.id)
+    .where(and(...baseConditions))
+    .orderBy(desc(folders.isFolder), folders.name, folders.id)
     .limit(limit + 1);
-  
-  const results = await query;
-  const hasMore = results.length > limit;
-  const data = hasMore ? results.slice(0, -1) : results;
-  const nextCursor = hasMore ? data[data.length - 1].id : null;
-  
-  return { data, nextCursor, hasMore };
+
+  const hasMore = records.length > limit;
+  const data = records.slice(0, limit).map(r => toFolder(r));
+
+  // Encode next cursor
+  const nextCursor = hasMore && data.length > 0
+    ? Buffer.from(String(data[data.length - 1].id)).toString("base64")
+    : null;
+
+  return { data, cursor: { next: nextCursor, hasMore } };
 }
 ```
+
+**Why Cursor > Offset:**
+- Offset: `OFFSET 10000` scans 10,000 rows (slow)
+- Cursor: `WHERE id > 10000` uses index (fast)
 
 ### Algorithm Complexity Summary
 
 | Algorithm | Time | Space | Location |
 |-----------|------|-------|----------|
-| Tree Building | O(n) | O(n) | FolderRepository |
-| Recursive Delete | O(n) | O(depth) | FolderRepository |
-| Cursor Pagination | O(1) | O(limit) | FolderRepository |
-| Search | O(log n)* | O(1) | FolderRepository |
+| Tree Building (Lazy) | O(1) | O(1) | `getFolderTree()` |
+| Tree Building (Full) | O(n) | O(n) | `getFullFolderTree()` (legacy) |
+| Batch Delete (BFS) | O(n) | O(width) | `delete()` / `hardDelete()` |
+| Cursor Pagination | O(1) | O(limit) | `findByParentIdWithCursor()` |
+| Search (Indexed) | O(log n) | O(limit) | `search()` / `searchWithCursor()` |
 
-*With database index
+**Notes:**
+- **n** = total number of folders
+- **width** = maximum width of tree (used in BFS queue)
+- **limit** = page size (default 50)
+- All queries use database indexes for optimal performance
 
 ---
 
