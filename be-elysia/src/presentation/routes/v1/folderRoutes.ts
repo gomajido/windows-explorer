@@ -6,6 +6,7 @@ import {
   CachedFolderSearchRepository,
 } from "../../../infrastructure/repositories/decorators";
 import { cache } from "../../../infrastructure/cache";
+import { readDb, writeDb } from "../../../infrastructure/database/connection";
 import {
   GetFolderTreeUseCase,
   GetChildrenUseCase,
@@ -21,27 +22,29 @@ import { FolderSchema } from "../../../domain/folder/dto";
 import { FolderController } from "../../controllers";
 import { authMiddleware } from "../../middlewares";
 
-// Dependency injection with SOLID principles
-// Base repository implements all interfaces
-const folderRepository = new FolderRepository();
+// Dependency injection with SOLID principles + Read/Write split
+// Read operations use readDb (can scale with read replicas)
+const readRepository = new FolderRepository(readDb);
+// Write operations use writeDb (master database)
+const writeRepository = new FolderRepository(writeDb);
 
 // Decorator pattern for caching (Open/Closed Principle)
 // Each decorator wraps specific repository interfaces
-const cachedTreeRepository = new CachedFolderTreeRepository(folderRepository, cache);
-const cachedReadRepository = new CachedFolderReadRepository(folderRepository, cache);
-const cachedSearchRepository = new CachedFolderSearchRepository(folderRepository, cache);
+const cachedTreeRepository = new CachedFolderTreeRepository(readRepository, cache);
+const cachedReadRepository = new CachedFolderReadRepository(readRepository, cache);
+const cachedSearchRepository = new CachedFolderSearchRepository(readRepository, cache);
 
 // Use cases depend on specific interfaces (Interface Segregation Principle)
 const controller = new FolderController(
-  new GetFolderTreeUseCase(cachedTreeRepository),        // Uses IFolderTreeRepository (cached)
-  new GetChildrenUseCase(cachedReadRepository),          // Uses IFolderReadRepository (cached)
-  new GetChildrenWithCursorUseCase(cachedReadRepository), // Uses IFolderReadRepository (cached + paginated)
-  new GetFolderUseCase(folderRepository),                // Uses IFolderReadRepository (not cached - low usage)
-  new CreateFolderUseCase(folderRepository, folderRepository), // Uses IFolderReadRepository + IFolderWriteRepository
-  new UpdateFolderUseCase(folderRepository),             // Uses IFolderWriteRepository
-  new DeleteFolderUseCase(folderRepository),             // Uses IFolderDeleteRepository
-  new SearchFoldersUseCase(cachedSearchRepository),      // Uses IFolderSearchRepository (cached)
-  new SearchFoldersWithCursorUseCase(cachedSearchRepository) // Uses IFolderSearchRepository (cached + paginated)
+  new GetFolderTreeUseCase(cachedTreeRepository),        // Uses IFolderTreeRepository (cached + read replica)
+  new GetChildrenUseCase(cachedReadRepository),          // Uses IFolderReadRepository (cached + read replica)
+  new GetChildrenWithCursorUseCase(cachedReadRepository), // Uses IFolderReadRepository (cached + read replica + paginated)
+  new GetFolderUseCase(readRepository),                  // Uses IFolderReadRepository (read replica - not cached for low usage)
+  new CreateFolderUseCase(readRepository, writeRepository), // Uses IFolderReadRepository (read) + IFolderWriteRepository (write)
+  new UpdateFolderUseCase(writeRepository),              // Uses IFolderWriteRepository (master)
+  new DeleteFolderUseCase(writeRepository),              // Uses IFolderDeleteRepository (master)
+  new SearchFoldersUseCase(cachedSearchRepository),      // Uses IFolderSearchRepository (cached + read replica)
+  new SearchFoldersWithCursorUseCase(cachedSearchRepository) // Uses IFolderSearchRepository (cached + read replica + paginated)
 );
 
 export const folderRoutes = new Elysia({ prefix: "/folders" })

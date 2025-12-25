@@ -58718,11 +58718,12 @@ var redisRateLimitMiddleware = (config = {
   });
 };
 // src/presentation/routes/v1/folderRoutes.ts
-var folderRepository = new FolderRepository;
-var cachedTreeRepository = new CachedFolderTreeRepository(folderRepository, cache);
-var cachedReadRepository = new CachedFolderReadRepository(folderRepository, cache);
-var cachedSearchRepository = new CachedFolderSearchRepository(folderRepository, cache);
-var controller = new FolderController(new GetFolderTreeUseCase(cachedTreeRepository), new GetChildrenUseCase(cachedReadRepository), new GetChildrenWithCursorUseCase(cachedReadRepository), new GetFolderUseCase(folderRepository), new CreateFolderUseCase(folderRepository, folderRepository), new UpdateFolderUseCase(folderRepository), new DeleteFolderUseCase(folderRepository), new SearchFoldersUseCase(cachedSearchRepository), new SearchFoldersWithCursorUseCase(cachedSearchRepository));
+var readRepository = new FolderRepository(readDb);
+var writeRepository = new FolderRepository(writeDb);
+var cachedTreeRepository = new CachedFolderTreeRepository(readRepository, cache);
+var cachedReadRepository = new CachedFolderReadRepository(readRepository, cache);
+var cachedSearchRepository = new CachedFolderSearchRepository(readRepository, cache);
+var controller = new FolderController(new GetFolderTreeUseCase(cachedTreeRepository), new GetChildrenUseCase(cachedReadRepository), new GetChildrenWithCursorUseCase(cachedReadRepository), new GetFolderUseCase(readRepository), new CreateFolderUseCase(readRepository, writeRepository), new UpdateFolderUseCase(writeRepository), new DeleteFolderUseCase(writeRepository), new SearchFoldersUseCase(cachedSearchRepository), new SearchFoldersWithCursorUseCase(cachedSearchRepository));
 var folderRoutes = new Elysia({ prefix: "/folders" }).use(authMiddleware()).onAfterHandle(({ request, set: set2 }) => {
   if (request.method === "GET") {
     set2.headers["Cache-Control"] = "public, max-age=60, stale-while-revalidate=300";

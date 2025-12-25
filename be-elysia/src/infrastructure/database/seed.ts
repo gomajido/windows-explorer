@@ -18,7 +18,7 @@ function generateFileName(): string {
 }
 
 async function seed() {
-  console.log("🌱 Seeding database with 100+ rows...");
+  console.log("🌱 Seeding database with 1000+ rows...");
 
   await db.delete(folders);
 
@@ -40,7 +40,7 @@ async function seed() {
   let totalRows = allRootFolders.length;
 
   for (const rootFolder of allRootFolders) {
-    const subFolderCount = 3 + Math.floor(Math.random() * 4);
+    const subFolderCount = 7 + Math.floor(Math.random() * 3);
     
     for (let i = 0; i < subFolderCount; i++) {
       const subFolderName = `${randomItem(folderNames)}_${i + 1}`;
@@ -53,7 +53,7 @@ async function seed() {
 
       const subFolderId = result[0].insertId;
 
-      const nestedFolderCount = 1 + Math.floor(Math.random() * 3);
+      const nestedFolderCount = 2;
       for (let j = 0; j < nestedFolderCount; j++) {
         const nestedResult = await db.insert(folders).values({
           name: `${randomItem(folderNames)}_${j + 1}`,
@@ -63,7 +63,7 @@ async function seed() {
         totalRows++;
 
         const nestedFolderId = nestedResult[0].insertId;
-        const deepFileCount = 2 + Math.floor(Math.random() * 4);
+        const deepFileCount = 5 + Math.floor(Math.random() * 2);
         for (let k = 0; k < deepFileCount; k++) {
           await db.insert(folders).values({
             name: generateFileName(),
@@ -74,7 +74,7 @@ async function seed() {
         }
       }
 
-      const fileCount = 3 + Math.floor(Math.random() * 5);
+      const fileCount = 6 + Math.floor(Math.random() * 2);
       for (let j = 0; j < fileCount; j++) {
         await db.insert(folders).values({
           name: generateFileName(),
@@ -85,7 +85,7 @@ async function seed() {
       }
     }
 
-    const rootFileCount = 2 + Math.floor(Math.random() * 4);
+    const rootFileCount = 4 + Math.floor(Math.random() * 2);
     for (let i = 0; i < rootFileCount; i++) {
       await db.insert(folders).values({
         name: generateFileName(),

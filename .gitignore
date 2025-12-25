@@ -10,6 +10,7 @@ bun.lockb
 # Backend
 be-elysia/node_modules
 be-elysia/.env*
+!be-elysia/.env.example
 be-elysia/dist
 
 # Frontend
@@ -17,6 +18,7 @@ fe-vue/node_modules
 fe-vue/dist
 fe-vue/.vite
 fe-vue/.env*
+!fe-vue/.env.example
 
 # Playwright
 fe-vue/playwright-report/
