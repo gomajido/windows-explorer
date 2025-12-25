@@ -138,6 +138,30 @@ export class FolderRepository implements IFolderRepository {
   }
 
   /**
+   * Finds only folder children (excludes files) for tree navigation.
+   * Used by tree components to show folder hierarchy only.
+   */
+  async findFoldersByParentId(parentId: number | null): Promise<Folder[]> {
+    this.logger.debug("findFoldersByParentId", { parentId });
+
+    const parentCondition = parentId === null
+      ? isNull(folders.parentId)
+      : eq(folders.parentId, parentId);
+
+    const records = await this.db
+      .select()
+      .from(folders)
+      .where(and(
+        parentCondition,
+        eq(folders.isFolder, true),  // Only folders for tree
+        this.notDeleted()
+      ))
+      .orderBy(folders.name);
+
+    return records.map((r) => this.toFolder(r));
+  }
+
+  /**
    * Finds children with cursor-based pagination for scalability.
    * Uses ID-based cursor for O(1) pagination at any position.
    */

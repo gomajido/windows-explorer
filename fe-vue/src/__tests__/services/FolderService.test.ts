@@ -28,6 +28,18 @@ describe("FolderService", () => {
       },
     ]);
 
+    spyOn(FolderApi, "getTreeChildren").mockResolvedValue([
+      {
+        id: 2,
+        name: "Work",
+        parentId: 1,
+        isFolder: true,
+        createdAt: "2025-12-22T00:00:00.000Z",
+        updatedAt: "2025-12-22T00:00:00.000Z",
+        deletedAt: null,
+      },
+    ]);
+
     spyOn(FolderApi, "getChildrenWithCursor").mockResolvedValue({
       data: [
         {
@@ -270,7 +282,7 @@ describe("FolderService", () => {
     await service.loadTree();
     
     // Mock to return empty children for this specific call
-    spyOn(FolderApi, "getChildren").mockResolvedValue([]);
+    spyOn(FolderApi, "getTreeChildren").mockResolvedValue([]);
     
     if (service.tree.value.length > 0) {
       const folder = service.tree.value[0];

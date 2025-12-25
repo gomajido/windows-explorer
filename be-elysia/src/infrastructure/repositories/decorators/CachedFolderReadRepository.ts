@@ -32,12 +32,13 @@ export class CachedFolderReadRepository implements IFolderReadRepository {
    * Cache key: folder:children:{parentId}
    */
   async findByParentId(parentId: number | null): Promise<Folder[]> {
-    const key = this.getCacheKey(parentId);
-    return this.cache.getOrSet(
-      key,
-      () => this.inner.findByParentId(parentId),
-      CachedFolderReadRepository.CACHE_TTL
-    );
+    const key = `folder:children:${parentId ?? 'root'}`;
+    return this.cache.getOrSet(key, () => this.inner.findByParentId(parentId), CachedFolderReadRepository.CACHE_TTL);
+  }
+
+  async findFoldersByParentId(parentId: number | null): Promise<Folder[]> {
+    const key = `folder:tree-children:${parentId ?? 'root'}`;
+    return this.cache.getOrSet(key, () => this.inner.findFoldersByParentId(parentId), CachedFolderReadRepository.CACHE_TTL);
   }
 
   /**

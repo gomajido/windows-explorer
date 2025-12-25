@@ -2,6 +2,7 @@ import type { Context } from "elysia";
 import type {
   GetFolderTreeUseCase,
   GetChildrenUseCase,
+  GetTreeChildrenUseCase,
   GetChildrenWithCursorUseCase,
   GetFolderUseCase,
   CreateFolderUseCase,
@@ -23,6 +24,7 @@ export class FolderController {
   constructor(
     private getFolderTreeUseCase: GetFolderTreeUseCase,
     private getChildrenUseCase: GetChildrenUseCase,
+    private getTreeChildrenUseCase: GetTreeChildrenUseCase,
     private getChildrenWithCursorUseCase: GetChildrenWithCursorUseCase,
     private getFolderUseCase: GetFolderUseCase,
     private createFolderUseCase: CreateFolderUseCase,
@@ -59,6 +61,12 @@ export class FolderController {
     const parentId = params.id === "root" ? null : parseInt(params.id);
     const data = await this.getChildrenUseCase.execute(parentId);
     return ApiResponseHelper.success(data, "Children retrieved");
+  }
+
+  async getTreeChildren({ params }: Context<{ params: { id: string } }>) {
+    const parentId = params.id === "root" ? null : parseInt(params.id);
+    const data = await this.getTreeChildrenUseCase.execute(parentId);
+    return ApiResponseHelper.success(data, "Tree children retrieved");
   }
 
   async getChildrenWithCursor({ params, query }: Context<{ params: { id: string }; query: CursorPaginationQuery }>) {

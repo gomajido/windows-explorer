@@ -12,9 +12,10 @@ export const FolderApi = {
 
   /**
    * Get root folders (parentId = null) for lazy tree initial load
+   * Returns only folders (excludes files) for tree navigation
    */
   async getRootFolders(): Promise<Folder[]> {
-    const response = await fetch(`${API_BASE}/root/children`);
+    const response = await fetch(`${API_BASE}/root/tree-children`);
     const result: ApiResponse<Folder[]> = await response.json();
     if (result.httpCode >= 400) throw new Error(result.detail || result.message);
     return result.data;
@@ -23,6 +24,17 @@ export const FolderApi = {
   async getChildren(parentId: number | null): Promise<Folder[]> {
     const id = parentId === null ? "root" : parentId;
     const response = await fetch(`${API_BASE}/${id}/children`);
+    const result: ApiResponse<Folder[]> = await response.json();
+    if (result.httpCode >= 400) throw new Error(result.detail || result.message);
+    return result.data;
+  },
+
+  /**
+   * Get only folder children for tree navigation (excludes files)
+   */
+  async getTreeChildren(parentId: number | null): Promise<Folder[]> {
+    const id = parentId === null ? "root" : parentId;
+    const response = await fetch(`${API_BASE}/${id}/tree-children`);
     const result: ApiResponse<Folder[]> = await response.json();
     if (result.httpCode >= 400) throw new Error(result.detail || result.message);
     return result.data;

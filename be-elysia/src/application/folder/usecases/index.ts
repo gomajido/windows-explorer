@@ -1,5 +1,6 @@
 export { GetFolderTreeUseCase } from "./GetFolderTree";
 export { GetChildrenUseCase } from "./GetChildren";
+export { GetTreeChildrenUseCase } from "./GetTreeChildren";
 export { GetChildrenWithCursorUseCase } from "./GetChildrenWithCursor";
 export { GetFolderUseCase } from "./GetFolder";
 export { CreateFolderUseCase } from "./CreateFolder";

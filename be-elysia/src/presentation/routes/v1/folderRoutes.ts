@@ -10,6 +10,7 @@ import { readDb, writeDb } from "../../../infrastructure/database/connection";
 import {
   GetFolderTreeUseCase,
   GetChildrenUseCase,
+  GetTreeChildrenUseCase,
   GetChildrenWithCursorUseCase,
   GetFolderUseCase,
   CreateFolderUseCase,
@@ -38,6 +39,7 @@ const cachedSearchRepository = new CachedFolderSearchRepository(readRepository, 
 const controller = new FolderController(
   new GetFolderTreeUseCase(cachedTreeRepository),        // Uses IFolderTreeRepository (cached + read replica)
   new GetChildrenUseCase(cachedReadRepository),          // Uses IFolderReadRepository (cached + read replica)
+  new GetTreeChildrenUseCase(cachedReadRepository),      // Uses IFolderReadRepository (cached + read replica) - folders only
   new GetChildrenWithCursorUseCase(cachedReadRepository), // Uses IFolderReadRepository (cached + read replica + paginated)
   new GetFolderUseCase(readRepository),                  // Uses IFolderReadRepository (read replica - not cached for low usage)
   new CreateFolderUseCase(readRepository, writeRepository), // Uses IFolderReadRepository (read) + IFolderWriteRepository (write)
@@ -68,6 +70,7 @@ export const folderRoutes = new Elysia({ prefix: "/folders" })
     params: FolderSchema.params.id,
     query: FolderSchema.query.cursorPagination,
   })
+  .get("/:id/tree-children", (ctx) => controller.getTreeChildren(ctx), { params: FolderSchema.params.id })
   .get("/:id/children", (ctx) => controller.getChildren(ctx), { params: FolderSchema.params.id })
   .get("/:id", (ctx) => controller.getById(ctx), { params: FolderSchema.params.id })
   // Protected routes (WRITE - invalidate cache)

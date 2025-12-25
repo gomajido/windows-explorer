@@ -38,15 +38,13 @@ export function useFolderService() {
     error.value = null;
     try {
       const rootFolders = await FolderApi.getRootFolders();
-      // Convert to lazy tree nodes (only folders, not files)
-      tree.value = rootFolders
-        .filter(f => f.isFolder)
-        .map(folder => ({
-          ...folder,
-          children: [],
-          isLoaded: false,
-          isExpanding: false,
-        }));
+      // Backend already returns only folders for tree navigation
+      tree.value = rootFolders.map(folder => ({
+        ...folder,
+        children: [],
+        isLoaded: false,
+        isExpanding: false,
+      }));
     } catch (err) {
       error.value = err instanceof Error ? err.message : "Failed to load tree";
       handleApiError(err);
@@ -63,16 +61,14 @@ export function useFolderService() {
     
     node.isExpanding = true;
     try {
-      const childFolders = await FolderApi.getChildren(node.id);
-      // Only add folders to tree (not files)
-      node.children = childFolders
-        .filter(f => f.isFolder)
-        .map(folder => ({
-          ...folder,
-          children: [],
-          isLoaded: false,
-          isExpanding: false,
-        }));
+      const childFolders = await FolderApi.getTreeChildren(node.id);
+      // Backend already filters to folders only
+      node.children = childFolders.map(folder => ({
+        ...folder,
+        children: [],
+        isLoaded: false,
+        isExpanding: false,
+      }));
       node.isLoaded = true;
     } catch (err) {
       error.value = err instanceof Error ? err.message : "Failed to load children";

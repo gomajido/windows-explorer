@@ -56,12 +56,13 @@ export function useFolderServiceWithCache() {
 
   /**
    * Load node children - uses API directly for tree expansion
+   * Uses getTreeChildren to filter out files (only shows folders in tree)
    */
   async function loadNodeChildren(node: LazyTreeNode) {
     if (node.isLoaded) return;
     
     try {
-      const childFolders = await FolderApi.getChildren(node.id);
+      const childFolders = await FolderApi.getTreeChildren(node.id);
       node.children = childFolders.map(folder => ({
         ...folder,
         children: [],
