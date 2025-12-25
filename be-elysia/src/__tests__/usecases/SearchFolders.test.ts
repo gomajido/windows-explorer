@@ -29,4 +29,26 @@ describe("SearchFoldersUseCase", () => {
     await useCase.execute("  test  ");
     expect(mockRepository.search).toHaveBeenCalledWith("test");
   });
+
+  it("should return empty array for whitespace-only query", async () => {
+    const result = await useCase.execute("   ");
+    expect(result).toEqual([]);
+    expect(mockRepository.search).not.toHaveBeenCalled();
+  });
+
+  it("should handle special characters in query", async () => {
+    await useCase.execute("test@#$%");
+    expect(mockRepository.search).toHaveBeenCalledWith("test@#$%");
+  });
+
+  it("should handle case-sensitive search", async () => {
+    await useCase.execute("Document");
+    expect(mockRepository.search).toHaveBeenCalledWith("Document");
+  });
+
+  it("should handle very long query strings", async () => {
+    const longQuery = "a".repeat(1000);
+    await useCase.execute(longQuery);
+    expect(mockRepository.search).toHaveBeenCalledWith(longQuery);
+  });
 });

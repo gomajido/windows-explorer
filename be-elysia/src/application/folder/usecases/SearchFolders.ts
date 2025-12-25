@@ -1,4 +1,4 @@
-import type { IFolderRepository } from "../../../domain/folder/interfaces/IFolderRepository";
+import type { IFolderSearchRepository } from "../../../domain/folder/interfaces/IFolderRepository";
 import type { Folder } from "../../../domain/folder/entities/Folder";
 
 /**
@@ -6,7 +6,7 @@ import type { Folder } from "../../../domain/folder/entities/Folder";
  * Returns empty array for empty queries (graceful handling).
  */
 export class SearchFoldersUseCase {
-  constructor(private readonly folderRepository: IFolderRepository) {}
+  constructor(private readonly folderRepository: IFolderSearchRepository) {}
 
   /**
    * Searches for folders and files matching the query.

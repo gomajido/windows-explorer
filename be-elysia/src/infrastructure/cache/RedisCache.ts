@@ -1,11 +1,12 @@
 import Redis from "ioredis";
 import { ENV } from "../config";
+import type { ICache } from "../../domain/shared/interfaces/ICache";
 
 /**
- * Redis cache implementation
- * Falls back to in-memory if Redis is unavailable
+ * Redis cache implementation with in-memory fallback.
+ * Implements ICache interface for dependency inversion.
  */
-export class RedisCache {
+export class RedisCache implements ICache {
   private client: Redis | null = null;
   private memoryFallback = new Map<string, { value: string; expiresAt: number }>();
   private isConnected = false;

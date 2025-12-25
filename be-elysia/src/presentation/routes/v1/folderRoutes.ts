@@ -1,5 +1,7 @@
 import { Elysia, t } from "elysia";
 import { FolderRepository } from "../../../infrastructure/repositories/folder";
+import { CachedFolderTreeRepository } from "../../../infrastructure/repositories/decorators";
+import { cache } from "../../../infrastructure/cache";
 import {
   GetFolderTreeUseCase,
   GetChildrenUseCase,
@@ -14,17 +16,23 @@ import { FolderSchema } from "../../../domain/folder/dto";
 import { FolderController } from "../../controllers";
 import { authMiddleware } from "../../middlewares";
 
-// Dependency injection
+// Dependency injection with SOLID principles
+// Base repository implements all interfaces
 const folderRepository = new FolderRepository();
+
+// Decorator pattern for caching (Open/Closed Principle)
+const cachedTreeRepository = new CachedFolderTreeRepository(folderRepository, cache);
+
+// Use cases depend on specific interfaces (Interface Segregation Principle)
 const controller = new FolderController(
-  new GetFolderTreeUseCase(folderRepository),
-  new GetChildrenUseCase(folderRepository),
-  new GetFolderUseCase(folderRepository),
-  new CreateFolderUseCase(folderRepository),
-  new UpdateFolderUseCase(folderRepository),
-  new DeleteFolderUseCase(folderRepository),
-  new SearchFoldersUseCase(folderRepository),
-  new SearchFoldersWithCursorUseCase(folderRepository)
+  new GetFolderTreeUseCase(cachedTreeRepository),        // Uses IFolderTreeRepository (cached)
+  new GetChildrenUseCase(folderRepository),              // Uses IFolderReadRepository
+  new GetFolderUseCase(folderRepository),                // Uses IFolderReadRepository
+  new CreateFolderUseCase(folderRepository, folderRepository), // Uses IFolderReadRepository + IFolderWriteRepository
+  new UpdateFolderUseCase(folderRepository),             // Uses IFolderWriteRepository
+  new DeleteFolderUseCase(folderRepository),             // Uses IFolderDeleteRepository
+  new SearchFoldersUseCase(folderRepository),            // Uses IFolderSearchRepository
+  new SearchFoldersWithCursorUseCase(folderRepository)   // Uses IFolderSearchRepository
 );
 
 export const folderRoutes = new Elysia({ prefix: "/folders" })

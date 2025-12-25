@@ -1,0 +1,1 @@
+export { ICache } from "./ICache";

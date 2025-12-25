@@ -11,7 +11,6 @@ import {
   FolderNotDeletedException,
 } from "../../../domain/folder/exceptions";
 import { ENV } from "../../config";
-import { cache } from "../../cache";
 
 /**
  * Enterprise-grade Repository implementation for folder operations.
@@ -137,30 +136,15 @@ export class FolderRepository implements IFolderRepository {
     return records.map((r) => this.toFolder(r));
   }
 
-  // Cache key for folder tree
-  private static readonly TREE_CACHE_KEY = "folder:tree";
-  private static readonly TREE_CACHE_TTL = 300; // 5 minutes
-
   /**
    * Builds the complete folder tree structure using an adjacency list algorithm.
    * Time Complexity: O(n), Space Complexity: O(n)
    * Only includes non-deleted folders.
    * 
-   * CACHED: This is a heavy operation - results are cached for 5 minutes.
+   * Note: Caching is handled by CachedFolderTreeRepository decorator.
    */
   async getFolderTree(): Promise<FolderTreeNode[]> {
-    return cache.getOrSet(
-      FolderRepository.TREE_CACHE_KEY,
-      () => this.buildFolderTree(),
-      FolderRepository.TREE_CACHE_TTL
-    );
-  }
-
-  /**
-   * Internal method to build the folder tree (uncached)
-   */
-  private async buildFolderTree(): Promise<FolderTreeNode[]> {
-    this.logger.debug("buildFolderTree (cache miss)");
+    this.logger.debug("getFolderTree");
 
     const allFolders = await this.db
       .select()
@@ -193,14 +177,6 @@ export class FolderRepository implements IFolderRepository {
     }
 
     return rootFolders;
-  }
-
-  /**
-   * Invalidate folder tree cache
-   * Called after any write operation that affects the tree
-   */
-  private invalidateTreeCache(): void {
-    cache.delete(FolderRepository.TREE_CACHE_KEY);
   }
 
   /**
@@ -323,7 +299,6 @@ export class FolderRepository implements IFolderRepository {
     const created = await this.findById(insertId);
     if (!created) throw new FolderCreationFailedException({ insertId });
 
-    this.invalidateTreeCache();
     return created;
   }
 
@@ -342,7 +317,6 @@ export class FolderRepository implements IFolderRepository {
       .set({ name })
       .where(eq(folders.id, id));
 
-    this.invalidateTreeCache();
     return { ...existing, name };
   }
 
@@ -367,7 +341,6 @@ export class FolderRepository implements IFolderRepository {
         .where(inArray(folders.id, idsToDelete));
     }
 
-    this.invalidateTreeCache();
   }
 
   /**
@@ -387,7 +360,6 @@ export class FolderRepository implements IFolderRepository {
       await this.db.delete(folders).where(inArray(folders.id, idsToDelete));
     }
 
-    this.invalidateTreeCache();
   }
 
   /**
@@ -412,7 +384,6 @@ export class FolderRepository implements IFolderRepository {
     const restored = await this.findById(id);
     if (!restored) throw new Error("Failed to restore folder");
 
-    this.invalidateTreeCache();
     return restored;
   }
 

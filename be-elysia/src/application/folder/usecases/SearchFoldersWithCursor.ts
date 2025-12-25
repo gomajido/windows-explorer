@@ -1,4 +1,4 @@
-import type { IFolderRepository } from "../../../domain/folder/interfaces/IFolderRepository";
+import type { IFolderSearchRepository } from "../../../domain/folder/interfaces/IFolderRepository";
 import type { CursorPaginatedResult, SearchOptions } from "../../../domain/folder/entities/Folder";
 import type { Folder } from "../../../domain/folder/entities/Folder";
 
@@ -7,7 +7,7 @@ import type { Folder } from "../../../domain/folder/entities/Folder";
  * Scales efficiently to millions of records.
  */
 export class SearchFoldersWithCursorUseCase {
-  constructor(private readonly folderRepository: IFolderRepository) {}
+  constructor(private readonly folderRepository: IFolderSearchRepository) {}
 
   /**
    * Searches for folders with cursor-based pagination.

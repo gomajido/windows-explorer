@@ -1,13 +1,17 @@
-import type { IFolderRepository } from "../../../domain/folder/interfaces/IFolderRepository";
+import type { IFolderReadRepository, IFolderWriteRepository } from "../../../domain/folder/interfaces/IFolderRepository";
 import type { Folder } from "../../../domain/folder/entities/Folder";
 import { ERROR_MESSAGES } from "../../../domain/folder/constants";
 
 /**
  * Use case for creating a new folder or file.
  * Validates input before delegating to repository.
+ * Uses separate read/write repositories (ISP compliance).
  */
 export class CreateFolderUseCase {
-  constructor(private readonly folderRepository: IFolderRepository) {}
+  constructor(
+    private readonly readRepository: IFolderReadRepository,
+    private readonly writeRepository: IFolderWriteRepository
+  ) {}
 
   /**
    * Creates a new folder or file.
@@ -21,6 +25,6 @@ export class CreateFolderUseCase {
     if (!name || name.trim().length === 0) {
       throw new Error(ERROR_MESSAGES.INVALID_NAME);
     }
-    return this.folderRepository.create(name.trim(), parentId, isFolder);
+    return this.writeRepository.create(name.trim(), parentId, isFolder);
   }
 }

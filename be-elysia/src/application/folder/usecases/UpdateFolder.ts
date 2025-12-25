@@ -1,4 +1,4 @@
-import type { IFolderRepository } from "../../../domain/folder/interfaces/IFolderRepository";
+import type { IFolderWriteRepository } from "../../../domain/folder/interfaces/IFolderRepository";
 import type { Folder } from "../../../domain/folder/entities/Folder";
 import { ERROR_MESSAGES } from "../../../domain/folder/constants";
 
@@ -7,7 +7,7 @@ import { ERROR_MESSAGES } from "../../../domain/folder/constants";
  * Validates input before delegating to repository.
  */
 export class UpdateFolderUseCase {
-  constructor(private readonly folderRepository: IFolderRepository) {}
+  constructor(private readonly folderRepository: IFolderWriteRepository) {}
 
   /**
    * Updates a folder's name.

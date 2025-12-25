@@ -27,4 +27,38 @@ describe("UpdateFolderUseCase", () => {
   it("should throw error for empty name", async () => {
     await expect(useCase.execute(1, "")).rejects.toThrow(ERROR_MESSAGES.INVALID_NAME);
   });
+
+  it("should throw error for whitespace-only name", async () => {
+    await expect(useCase.execute(1, "   ")).rejects.toThrow(ERROR_MESSAGES.INVALID_NAME);
+  });
+
+  it("should trim whitespace from name", async () => {
+    await useCase.execute(1, "  Updated Name  ");
+    expect(mockRepository.update).toHaveBeenCalledWith(1, "Updated Name");
+  });
+
+  it("should throw error for negative id", async () => {
+    await expect(useCase.execute(-1, "Name")).rejects.toThrow(ERROR_MESSAGES.INVALID_ID);
+  });
+
+  it("should handle updating with special characters", async () => {
+    await useCase.execute(1, "New@Name#123");
+    expect(mockRepository.update).toHaveBeenCalledWith(1, "New@Name#123");
+  });
+
+  it("should handle updating with unicode characters", async () => {
+    await useCase.execute(1, "新名称");
+    expect(mockRepository.update).toHaveBeenCalledWith(1, "新名称");
+  });
+
+  it("should handle updating with very long name", async () => {
+    const longName = "x".repeat(255);
+    await useCase.execute(1, longName);
+    expect(mockRepository.update).toHaveBeenCalledWith(1, longName);
+  });
+
+  it("should handle updating folder with large id", async () => {
+    await useCase.execute(999999, "Updated");
+    expect(mockRepository.update).toHaveBeenCalledWith(999999, "Updated");
+  });
 });

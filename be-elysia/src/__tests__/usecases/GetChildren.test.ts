@@ -42,4 +42,34 @@ describe("GetChildrenUseCase", () => {
     expect(result).toHaveLength(2);
     expect(result[0].parentId).toBeNull();
   });
+
+  it("should handle folder with many children", async () => {
+    const manyChildren = Array.from({ length: 100 }, (_, i) =>
+      createMockFolder({ id: i + 2, name: `Child ${i}`, parentId: 1 })
+    );
+    mockRepository.findByParentId = () => Promise.resolve(manyChildren);
+
+    const result = await useCase.execute(1);
+    expect(result).toHaveLength(100);
+  });
+
+  it("should return both folders and files as children", async () => {
+    const mixed = [
+      createMockFolder({ id: 2, name: "Subfolder", parentId: 1, isFolder: true }),
+      createMockFolder({ id: 3, name: "file.txt", parentId: 1, isFolder: false }),
+    ];
+    mockRepository.findByParentId = () => Promise.resolve(mixed);
+
+    const result = await useCase.execute(1);
+    expect(result).toHaveLength(2);
+    expect(result.some(item => item.isFolder)).toBe(true);
+    expect(result.some(item => !item.isFolder)).toBe(true);
+  });
+
+  it("should handle non-existent parent id", async () => {
+    mockRepository.findByParentId = () => Promise.resolve([]);
+
+    const result = await useCase.execute(99999);
+    expect(result).toEqual([]);
+  });
 });

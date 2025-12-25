@@ -1,7 +1,7 @@
-import type { IFolderRepository } from "../../../domain/folder/interfaces/IFolderRepository";
+import type { IFolderDeleteRepository } from "../../../domain/folder/interfaces/IFolderRepository";
 
 export class DeleteFolderUseCase {
-  constructor(private readonly folderRepository: IFolderRepository) {}
+  constructor(private readonly folderRepository: IFolderDeleteRepository) {}
 
   async execute(id: number): Promise<void> {
     return this.folderRepository.delete(id);

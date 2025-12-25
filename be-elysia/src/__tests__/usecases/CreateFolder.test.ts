@@ -30,4 +30,35 @@ describe("CreateFolderUseCase", () => {
     await useCase.execute("  Test  ", 1, true);
     expect(mockRepository.create).toHaveBeenCalledWith("Test", 1, true);
   });
+
+  it("should create folder at root level (null parent)", async () => {
+    await useCase.execute("Root Folder", null, true);
+    expect(mockRepository.create).toHaveBeenCalledWith("Root Folder", null, true);
+  });
+
+  it("should create file (isFolder = false)", async () => {
+    await useCase.execute("document.pdf", 1, false);
+    expect(mockRepository.create).toHaveBeenCalledWith("document.pdf", 1, false);
+  });
+
+  it("should handle special characters in name", async () => {
+    await useCase.execute("Test@#$%", 1, true);
+    expect(mockRepository.create).toHaveBeenCalledWith("Test@#$%", 1, true);
+  });
+
+  it("should handle unicode characters in name", async () => {
+    await useCase.execute("文件夹", 1, true);
+    expect(mockRepository.create).toHaveBeenCalledWith("文件夹", 1, true);
+  });
+
+  it("should handle very long folder names", async () => {
+    const longName = "a".repeat(255);
+    await useCase.execute(longName, 1, true);
+    expect(mockRepository.create).toHaveBeenCalledWith(longName, 1, true);
+  });
+
+  it("should create nested folder (deep hierarchy)", async () => {
+    await useCase.execute("Deep Folder", 999, true);
+    expect(mockRepository.create).toHaveBeenCalledWith("Deep Folder", 999, true);
+  });
 });
