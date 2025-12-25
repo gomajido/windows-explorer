@@ -2,7 +2,6 @@
 import type { Folder } from "@/domain/entities/Folder";
 import { getFileIcon, getFileColor } from "@/presentation/components/icons/index";
 import SkeletonLoader from "./SkeletonLoader.vue";
-import { RecycleScroller } from "vue-virtual-scroller";
 
 const props = defineProps<{
   selectedFolder: Folder | null;
@@ -91,7 +90,7 @@ function getIconColor(item: Folder): string {
       </div>
     </div>
     
-    <!-- List View (Default) with Virtual Scrolling -->
+    <!-- List View (Default) -->
     <div v-else class="h-full flex flex-col">
       <div class="flex-shrink-0 text-left text-xs text-gray-500 uppercase bg-gray-50 border-b border-gray-200">
         <div class="flex px-4 py-3 font-medium">
@@ -101,39 +100,33 @@ function getIconColor(item: Folder): string {
         </div>
       </div>
       
-      <RecycleScroller
-        class="flex-1"
-        :items="children"
-        :item-size="48"
-        key-field="id"
-        :buffer="200"
-      >
-        <template #default="{ item }">
-          <div
-            class="flex items-center px-4 py-3 hover:bg-blue-50 cursor-pointer transition-colors group border-b border-gray-100"
-            role="row"
-            tabindex="0"
-            :aria-label="`${item.name}, ${item.isFolder ? 'folder' : 'file'}`"
-            @dblclick="item.isFolder && emit('openFolder', item)"
-            @keydown.enter="item.isFolder && emit('openFolder', item)"
-          >
-            <div class="flex-1 flex items-center gap-3">
-              <span 
-                class="w-5 h-5 flex-shrink-0"
-                :class="getIconColor(item)"
-                v-html="getIconHtml(item)"
-              />
-              <span class="text-sm text-gray-700 group-hover:text-gray-900">{{ item.name }}</span>
-            </div>
-            <div class="w-24 text-sm text-gray-500">
-              {{ item.isFolder ? "Folder" : "File" }}
-            </div>
-            <div class="w-32 text-sm text-gray-500">
-              {{ formatDate(item.updatedAt) }}
-            </div>
+      <div class="flex-1 overflow-y-auto">
+        <div
+          v-for="item in children"
+          :key="item.id"
+          class="flex items-center px-4 py-3 hover:bg-blue-50 cursor-pointer transition-colors group border-b border-gray-100"
+          role="row"
+          tabindex="0"
+          :aria-label="`${item.name}, ${item.isFolder ? 'folder' : 'file'}`"
+          @dblclick="item.isFolder && emit('openFolder', item)"
+          @keydown.enter="item.isFolder && emit('openFolder', item)"
+        >
+          <div class="flex-1 flex items-center gap-3">
+            <span 
+              class="w-5 h-5 flex-shrink-0"
+              :class="getIconColor(item)"
+              v-html="getIconHtml(item)"
+            />
+            <span class="text-sm text-gray-700 group-hover:text-gray-900">{{ item.name }}</span>
           </div>
-        </template>
-      </RecycleScroller>
+          <div class="w-24 text-sm text-gray-500">
+            {{ item.isFolder ? "Folder" : "File" }}
+          </div>
+          <div class="w-32 text-sm text-gray-500">
+            {{ formatDate(item.updatedAt) }}
+          </div>
+        </div>
+      </div>
 
       <!-- Load More Button with helpful instructions -->
       <div v-if="hasMore" class="flex-shrink-0 p-4 text-center border-t border-gray-200 bg-gray-50">

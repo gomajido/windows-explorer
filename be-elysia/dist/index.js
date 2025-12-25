@@ -1313,6 +1313,115 @@ var require_browser = __commonJS((exports, module) => {
   };
 });
 
+// ../node_modules/.bun/has-flag@4.0.0/node_modules/has-flag/index.js
+var require_has_flag = __commonJS((exports, module) => {
+  module.exports = (flag, argv = process.argv) => {
+    const prefix = flag.startsWith("-") ? "" : flag.length === 1 ? "-" : "--";
+    const position = argv.indexOf(prefix + flag);
+    const terminatorPosition = argv.indexOf("--");
+    return position !== -1 && (terminatorPosition === -1 || position < terminatorPosition);
+  };
+});
+
+// ../node_modules/.bun/supports-color@7.2.0/node_modules/supports-color/index.js
+var require_supports_color = __commonJS((exports, module) => {
+  var os = __require("os");
+  var tty = __require("tty");
+  var hasFlag = require_has_flag();
+  var { env } = process;
+  var forceColor;
+  if (hasFlag("no-color") || hasFlag("no-colors") || hasFlag("color=false") || hasFlag("color=never")) {
+    forceColor = 0;
+  } else if (hasFlag("color") || hasFlag("colors") || hasFlag("color=true") || hasFlag("color=always")) {
+    forceColor = 1;
+  }
+  if ("FORCE_COLOR" in env) {
+    if (env.FORCE_COLOR === "true") {
+      forceColor = 1;
+    } else if (env.FORCE_COLOR === "false") {
+      forceColor = 0;
+    } else {
+      forceColor = env.FORCE_COLOR.length === 0 ? 1 : Math.min(parseInt(env.FORCE_COLOR, 10), 3);
+    }
+  }
+  function translateLevel(level) {
+    if (level === 0) {
+      return false;
+    }
+    return {
+      level,
+      hasBasic: true,
+      has256: level >= 2,
+      has16m: level >= 3
+    };
+  }
+  function supportsColor(haveStream, streamIsTTY) {
+    if (forceColor === 0) {
+      return 0;
+    }
+    if (hasFlag("color=16m") || hasFlag("color=full") || hasFlag("color=truecolor")) {
+      return 3;
+    }
+    if (hasFlag("color=256")) {
+      return 2;
+    }
+    if (haveStream && !streamIsTTY && forceColor === undefined) {
+      return 0;
+    }
+    const min = forceColor || 0;
+    if (env.TERM === "dumb") {
+      return min;
+    }
+    if (process.platform === "win32") {
+      const osRelease = os.release().split(".");
+      if (Number(osRelease[0]) >= 10 && Number(osRelease[2]) >= 10586) {
+        return Number(osRelease[2]) >= 14931 ? 3 : 2;
+      }
+      return 1;
+    }
+    if ("CI" in env) {
+      if (["TRAVIS", "CIRCLECI", "APPVEYOR", "GITLAB_CI", "GITHUB_ACTIONS", "BUILDKITE"].some((sign) => (sign in env)) || env.CI_NAME === "codeship") {
+        return 1;
+      }
+      return min;
+    }
+    if ("TEAMCITY_VERSION" in env) {
+      return /^(9\.(0*[1-9]\d*)\.|\d{2,}\.)/.test(env.TEAMCITY_VERSION) ? 1 : 0;
+    }
+    if (env.COLORTERM === "truecolor") {
+      return 3;
+    }
+    if ("TERM_PROGRAM" in env) {
+      const version = parseInt((env.TERM_PROGRAM_VERSION || "").split(".")[0], 10);
+      switch (env.TERM_PROGRAM) {
+        case "iTerm.app":
+          return version >= 3 ? 3 : 2;
+        case "Apple_Terminal":
+          return 2;
+      }
+    }
+    if (/-256(color)?$/i.test(env.TERM)) {
+      return 2;
+    }
+    if (/^screen|^xterm|^vt100|^vt220|^rxvt|color|ansi|cygwin|linux/i.test(env.TERM)) {
+      return 1;
+    }
+    if ("COLORTERM" in env) {
+      return 1;
+    }
+    return min;
+  }
+  function getSupportLevel(stream) {
+    const level = supportsColor(stream, stream && stream.isTTY);
+    return translateLevel(level);
+  }
+  module.exports = {
+    supportsColor: getSupportLevel,
+    stdout: translateLevel(supportsColor(true, tty.isatty(1))),
+    stderr: translateLevel(supportsColor(true, tty.isatty(2)))
+  };
+});
+
 // ../node_modules/.bun/debug@4.4.3/node_modules/debug/src/node.js
 var require_node = __commonJS((exports, module) => {
   var tty = __require("tty");
@@ -1326,7 +1435,7 @@ var require_node = __commonJS((exports, module) => {
   exports.destroy = util.deprecate(() => {}, "Instance method `debug.destroy()` is deprecated and no longer does anything. It will be removed in the next major version of `debug`.");
   exports.colors = [6, 2, 3, 4, 5, 1];
   try {
-    const supportsColor = (()=>{throw new Error("Cannot require module "+"supports-color");})();
+    const supportsColor = require_supports_color();
     if (supportsColor && (supportsColor.stderr || supportsColor).level >= 2) {
       exports.colors = [
         20,
@@ -29949,9 +30058,9 @@ var require_ClusterSubscriberGroup = __commonJS((exports) => {
       }
     }
     _addSubscriber(redis) {
-      const pool2 = new ConnectionPool_1.default(redis.options);
-      if (pool2.addMasterNode(redis)) {
-        const sub = new ClusterSubscriber_1.default(pool2, this.cluster, true);
+      const pool = new ConnectionPool_1.default(redis.options);
+      if (pool.addMasterNode(redis)) {
+        const sub = new ClusterSubscriber_1.default(pool, this.cluster, true);
         const nodeKey = (0, util_1.getNodeKey)(redis.options);
         this.shardedSubscribers.set(nodeKey, sub);
         sub.start();
@@ -57509,15 +57618,17 @@ var folders = mysqlTable("folders", {
   updatedAt: timestamp("updated_at").notNull().defaultNow().onUpdateNow(),
   deletedAt: timestamp("deleted_at")
 }, (table) => ({
+  parentActiveNameIdx: index("parent_active_name_idx").on(table.parentId, table.deletedAt, table.name),
+  folderActiveNameIdx: index("folder_active_name_idx").on(table.isFolder, table.deletedAt, table.name),
+  activeNameIdx: index("active_name_idx").on(table.deletedAt, table.name),
   parentIdIdx: index("parent_id_idx").on(table.parentId),
-  nameIdx: index("name_idx").on(table.name),
-  deletedAtIdx: index("deleted_at_idx").on(table.deletedAt)
+  nameIdx: index("name_idx").on(table.name)
 }));
 
 // src/infrastructure/database/connection.ts
-var pool = import_promise3.default.createPool({
-  host: Bun.env.DB_HOST || "127.0.0.1",
-  port: Number(Bun.env.DB_PORT) || 3309,
+var masterPool = import_promise3.default.createPool({
+  host: Bun.env.DB_WRITE_HOST || Bun.env.DB_HOST || "127.0.0.1",
+  port: Number(Bun.env.DB_WRITE_PORT || Bun.env.DB_PORT) || 3309,
   user: Bun.env.DB_USER || "root",
   password: Bun.env.DB_PASSWORD || "root",
   database: Bun.env.DB_NAME || "folder_explorer",
@@ -57525,7 +57636,22 @@ var pool = import_promise3.default.createPool({
   connectionLimit: 10,
   queueLimit: 0
 });
-var db = drizzle(pool, { schema: exports_schema, mode: "default" });
+var replicaPool = import_promise3.default.createPool({
+  host: Bun.env.DB_READ_HOST || Bun.env.DB_HOST || "127.0.0.1",
+  port: Number(Bun.env.DB_READ_PORT || Bun.env.DB_PORT) || 3309,
+  user: Bun.env.DB_USER || "root",
+  password: Bun.env.DB_PASSWORD || "root",
+  database: Bun.env.DB_NAME || "folder_explorer",
+  waitForConnections: true,
+  connectionLimit: 20,
+  queueLimit: 0
+});
+var writeDb = drizzle(masterPool, { schema: exports_schema, mode: "default" });
+var readDb = drizzle(replicaPool, { schema: exports_schema, mode: "default" });
+var db = writeDb;
+async function withTransaction(callback) {
+  return await writeDb.transaction(callback);
+}
 
 // src/domain/folder/constants/index.ts
 var FOLDER_ERROR_CODES = {
@@ -57560,7 +57686,6 @@ var ERROR_MESSAGES = {
   SEARCH_QUERY_EMPTY: "Search query cannot be empty"
 };
 var MAX_SEARCH_RESULTS = 50;
-var MAX_QUERY_LIMIT = 1000;
 
 // src/domain/shared/exceptions/index.ts
 class AppException extends Error {
@@ -57627,6 +57752,366 @@ var ENV = {
   isTest: false
 };
 
+// src/infrastructure/repositories/folder/FolderRepository.ts
+class FolderRepository {
+  db;
+  logger = {
+    debug: (method, ...args) => {
+      if (ENV.isDevelopment) {
+        console.log(`[FolderRepo.${method}]`, ...args);
+      }
+    },
+    error: (method, error) => {
+      console.error(`[FolderRepo.${method}] Error:`, error);
+    }
+  };
+  constructor(db2 = db) {
+    this.db = db2;
+  }
+  toFolder(record) {
+    return {
+      id: record.id,
+      name: record.name,
+      parentId: record.parentId,
+      isFolder: record.isFolder,
+      createdAt: record.createdAt,
+      updatedAt: record.updatedAt,
+      deletedAt: record.deletedAt
+    };
+  }
+  notDeleted() {
+    return isNull(folders.deletedAt);
+  }
+  async findAll(options = {}) {
+    const { page = 1, limit = 50, includeDeleted = false } = options;
+    const offset = (page - 1) * limit;
+    this.logger.debug("findAll", { page, limit, includeDeleted });
+    const baseCondition = includeDeleted ? undefined : this.notDeleted();
+    const [records, totalResult] = await Promise.all([
+      this.db.select().from(folders).where(baseCondition).orderBy(desc(folders.isFolder), folders.name).limit(limit).offset(offset),
+      this.db.select({ count: sql`count(*)` }).from(folders).where(baseCondition)
+    ]);
+    const total = totalResult[0]?.count ?? 0;
+    return {
+      data: records.map((r2) => this.toFolder(r2)),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
+  }
+  async findById(id, includeDeleted = false) {
+    this.logger.debug("findById", { id, includeDeleted });
+    const conditions = includeDeleted ? eq(folders.id, id) : and(eq(folders.id, id), this.notDeleted());
+    const records = await this.db.select().from(folders).where(conditions).limit(1);
+    return records.length > 0 ? this.toFolder(records[0]) : null;
+  }
+  async findByParentId(parentId) {
+    this.logger.debug("findByParentId", { parentId });
+    const parentCondition = parentId === null ? isNull(folders.parentId) : eq(folders.parentId, parentId);
+    const records = await this.db.select().from(folders).where(and(parentCondition, this.notDeleted())).orderBy(desc(folders.isFolder), folders.name);
+    return records.map((r2) => this.toFolder(r2));
+  }
+  async findByParentIdWithCursor(parentId, options = {}) {
+    const { limit = 50, cursor } = options;
+    this.logger.debug("findByParentIdWithCursor", { parentId, limit, cursor });
+    const parentCondition = parentId === null ? isNull(folders.parentId) : eq(folders.parentId, parentId);
+    let lastId = null;
+    if (cursor) {
+      try {
+        lastId = parseInt(Buffer.from(cursor, "base64").toString("utf-8"), 10);
+      } catch {
+        lastId = null;
+      }
+    }
+    const baseConditions = [parentCondition, this.notDeleted()];
+    if (lastId !== null) {
+      baseConditions.push(gt(folders.id, lastId));
+    }
+    const records = await this.db.select().from(folders).where(and(...baseConditions)).orderBy(desc(folders.isFolder), folders.name, folders.id).limit(limit + 1);
+    const hasMore = records.length > limit;
+    const data = records.slice(0, limit).map((r2) => this.toFolder(r2));
+    const nextCursor = hasMore && data.length > 0 ? Buffer.from(String(data[data.length - 1].id)).toString("base64") : null;
+    return {
+      data,
+      cursor: {
+        next: nextCursor,
+        hasMore
+      }
+    };
+  }
+  async getFolderTree() {
+    this.logger.debug("getFolderTree - loading root folders only (lazy)");
+    const rootFolders = await this.db.select().from(folders).where(and(eq(folders.isFolder, true), isNull(folders.parentId), this.notDeleted())).orderBy(folders.name).limit(100);
+    const rootIds = rootFolders.map((f) => f.id);
+    const childCounts = await this.getChildCounts(rootIds);
+    return rootFolders.map((record) => ({
+      ...this.toFolder(record),
+      children: [],
+      hasChildren: (childCounts.get(record.id) || 0) > 0
+    }));
+  }
+  async getChildCounts(parentIds) {
+    if (parentIds.length === 0)
+      return new Map;
+    const counts = await this.db.select({
+      parentId: folders.parentId,
+      count: sql`count(*)`
+    }).from(folders).where(and(inArray(folders.parentId, parentIds), eq(folders.isFolder, true), this.notDeleted())).groupBy(folders.parentId);
+    return new Map(counts.map((c) => [c.parentId, Number(c.count)]));
+  }
+  async getFullFolderTree() {
+    this.logger.debug("getFullFolderTree - WARNING: Loading entire tree");
+    const allFolders = await this.db.select().from(folders).where(and(eq(folders.isFolder, true), this.notDeleted())).orderBy(folders.name);
+    const folderMap = new Map;
+    const rootFolders = [];
+    for (const record of allFolders) {
+      folderMap.set(record.id, {
+        ...this.toFolder(record),
+        children: []
+      });
+    }
+    for (const record of allFolders) {
+      const node = folderMap.get(record.id);
+      if (record.parentId === null) {
+        rootFolders.push(node);
+      } else {
+        const parent = folderMap.get(record.parentId);
+        if (parent) {
+          parent.children.push(node);
+        }
+      }
+    }
+    return rootFolders;
+  }
+  async search(query, limit = MAX_SEARCH_RESULTS) {
+    this.logger.debug("search", { query, limit });
+    const sanitizedQuery = query.replace(/[%_]/g, "\\$&");
+    const records = await this.db.select().from(folders).where(and(like(folders.name, `%${sanitizedQuery}%`), this.notDeleted())).orderBy(desc(folders.isFolder), folders.name).limit(limit);
+    return records.map((r2) => this.toFolder(r2));
+  }
+  async searchWithCursor(options) {
+    const { query, limit = MAX_SEARCH_RESULTS, cursor } = options;
+    this.logger.debug("searchWithCursor", { query, limit, cursor });
+    const sanitizedQuery = query.replace(/[%_]/g, "\\$&");
+    let lastId = null;
+    if (cursor) {
+      try {
+        lastId = parseInt(Buffer.from(cursor, "base64").toString("utf-8"), 10);
+      } catch {
+        lastId = null;
+      }
+    }
+    const baseConditions = [
+      like(folders.name, `%${sanitizedQuery}%`),
+      this.notDeleted()
+    ];
+    if (lastId !== null) {
+      baseConditions.push(gt(folders.id, lastId));
+    }
+    const records = await this.db.select().from(folders).where(and(...baseConditions)).orderBy(folders.id).limit(limit + 1);
+    const hasMore = records.length > limit;
+    const data = records.slice(0, limit).map((r2) => this.toFolder(r2));
+    const nextCursor = hasMore && data.length > 0 ? Buffer.from(String(data[data.length - 1].id)).toString("base64") : null;
+    return {
+      data,
+      cursor: {
+        next: nextCursor,
+        hasMore
+      }
+    };
+  }
+  async count(includeDeleted = false) {
+    this.logger.debug("count", { includeDeleted });
+    const condition = includeDeleted ? undefined : this.notDeleted();
+    const result = await this.db.select({ count: sql`count(*)` }).from(folders).where(condition);
+    return result[0]?.count ?? 0;
+  }
+  async create(name, parentId, isFolder) {
+    this.logger.debug("create", { name, parentId, isFolder });
+    return await withTransaction(async (tx) => {
+      if (parentId !== null) {
+        const parent = await this.findById(parentId);
+        if (!parent) {
+          throw new FolderNotFoundException(parentId);
+        }
+        if (!parent.isFolder) {
+          throw new ParentNotFolderException(parentId);
+        }
+      }
+      const result = await tx.insert(folders).values({
+        name,
+        parentId,
+        isFolder
+      });
+      const insertId = result[0].insertId;
+      const created = await this.findById(insertId);
+      if (!created) {
+        throw new FolderCreationFailedException({ insertId });
+      }
+      return created;
+    });
+  }
+  async update(id, name) {
+    this.logger.debug("update", { id, name });
+    return await withTransaction(async (tx) => {
+      const existing = await this.findById(id);
+      if (!existing)
+        throw new FolderNotFoundException(id);
+      await tx.update(folders).set({ name }).where(eq(folders.id, id));
+      return { ...existing, name };
+    });
+  }
+  async delete(id) {
+    this.logger.debug("delete (soft)", { id });
+    await withTransaction(async (tx) => {
+      const existing = await this.findById(id);
+      if (!existing)
+        throw new FolderNotFoundException(id);
+      const idsToDelete = await this.collectDescendantIds(id);
+      idsToDelete.push(id);
+      const now = new Date;
+      if (idsToDelete.length > 0) {
+        await tx.update(folders).set({ deletedAt: now }).where(inArray(folders.id, idsToDelete));
+      }
+    });
+  }
+  async hardDelete(id) {
+    this.logger.debug("hardDelete", { id });
+    await withTransaction(async (tx) => {
+      const existing = await this.findById(id, true);
+      if (!existing)
+        throw new FolderNotFoundException(id);
+      const idsToDelete = await this.collectDescendantIds(id, true);
+      idsToDelete.push(id);
+      if (idsToDelete.length > 0) {
+        await tx.delete(folders).where(inArray(folders.id, idsToDelete));
+      }
+    });
+  }
+  async restore(id) {
+    this.logger.debug("restore", { id });
+    return await withTransaction(async (tx) => {
+      const existing = await this.findById(id, true);
+      if (!existing)
+        throw new FolderNotFoundException(id);
+      if (!existing.deletedAt)
+        throw new FolderNotDeletedException(id);
+      const idsToRestore = await this.collectDescendantIds(id, true);
+      idsToRestore.push(id);
+      await tx.update(folders).set({ deletedAt: null }).where(inArray(folders.id, idsToRestore));
+      const restored = await this.findById(id);
+      if (!restored)
+        throw new Error("Failed to restore folder");
+      return restored;
+    });
+  }
+  async collectDescendantIds(parentId, includeDeleted = false) {
+    const allIds = [];
+    let currentParentIds = [parentId];
+    while (currentParentIds.length > 0) {
+      const condition = includeDeleted ? inArray(folders.parentId, currentParentIds) : and(inArray(folders.parentId, currentParentIds), this.notDeleted());
+      const children = await this.db.select({ id: folders.id }).from(folders).where(condition);
+      const childIds = children.map((c) => c.id);
+      allIds.push(...childIds);
+      currentParentIds = childIds;
+    }
+    return allIds;
+  }
+}
+// src/infrastructure/repositories/decorators/CachedFolderTreeRepository.ts
+class CachedFolderTreeRepository {
+  inner;
+  cache;
+  static CACHE_KEY = "folder:tree";
+  static CACHE_TTL = 300;
+  constructor(inner, cache) {
+    this.inner = inner;
+    this.cache = cache;
+  }
+  async getFolderTree() {
+    return this.cache.getOrSet(CachedFolderTreeRepository.CACHE_KEY, () => this.inner.getFolderTree(), CachedFolderTreeRepository.CACHE_TTL);
+  }
+  async invalidateCache() {
+    await this.cache.delete(CachedFolderTreeRepository.CACHE_KEY);
+  }
+}
+// src/infrastructure/repositories/decorators/CachedFolderReadRepository.ts
+class CachedFolderReadRepository {
+  inner;
+  cache;
+  static CACHE_TTL = 300;
+  static CACHE_PREFIX = "folder:children:";
+  constructor(inner, cache) {
+    this.inner = inner;
+    this.cache = cache;
+  }
+  async findById(id, includeDeleted) {
+    return this.inner.findById(id, includeDeleted);
+  }
+  async findByParentId(parentId) {
+    const key = this.getCacheKey(parentId);
+    return this.cache.getOrSet(key, () => this.inner.findByParentId(parentId), CachedFolderReadRepository.CACHE_TTL);
+  }
+  async findByParentIdWithCursor(parentId, options = {}) {
+    const key = this.getCursorCacheKey(parentId, options.cursor);
+    return this.cache.getOrSet(key, () => this.inner.findByParentIdWithCursor(parentId, options), CachedFolderReadRepository.CACHE_TTL);
+  }
+  async findAll(options) {
+    return this.inner.findAll(options);
+  }
+  async count(includeDeleted) {
+    return this.inner.count(includeDeleted);
+  }
+  getCacheKey(parentId) {
+    return `${CachedFolderReadRepository.CACHE_PREFIX}${parentId ?? "root"}`;
+  }
+  getCursorCacheKey(parentId, cursor) {
+    const base = this.getCacheKey(parentId);
+    return cursor ? `${base}:cursor:${cursor}` : `${base}:cursor:first`;
+  }
+  async invalidateParent(parentId) {
+    const key = this.getCacheKey(parentId);
+    await this.cache.delete(key);
+  }
+  async invalidateParentCursors(parentId) {
+    const pattern = `${this.getCacheKey(parentId)}:cursor:*`;
+    await this.cache.delete(pattern);
+  }
+}
+// src/infrastructure/repositories/decorators/CachedFolderSearchRepository.ts
+class CachedFolderSearchRepository {
+  inner;
+  cache;
+  static CACHE_TTL = 180;
+  static CACHE_PREFIX = "folder:search:";
+  constructor(inner, cache) {
+    this.inner = inner;
+    this.cache = cache;
+  }
+  async search(query, limit) {
+    const sanitizedQuery = this.sanitizeQuery(query);
+    const key = `${CachedFolderSearchRepository.CACHE_PREFIX}basic:${sanitizedQuery}:${limit ?? "default"}`;
+    return this.cache.getOrSet(key, () => this.inner.search(query, limit), CachedFolderSearchRepository.CACHE_TTL);
+  }
+  async searchWithCursor(options) {
+    const sanitizedQuery = this.sanitizeQuery(options.query);
+    const key = this.getCursorCacheKey(sanitizedQuery, options.cursor);
+    return this.cache.getOrSet(key, () => this.inner.searchWithCursor(options), CachedFolderSearchRepository.CACHE_TTL);
+  }
+  sanitizeQuery(query) {
+    return query.toLowerCase().trim().replace(/[^a-z0-9]/g, "_");
+  }
+  getCursorCacheKey(sanitizedQuery, cursor) {
+    const cursorPart = cursor ? `:cursor:${cursor}` : ":cursor:first";
+    return `${CachedFolderSearchRepository.CACHE_PREFIX}cursor:${sanitizedQuery}${cursorPart}`;
+  }
+  async invalidateAll() {
+    await this.cache.delete(`${CachedFolderSearchRepository.CACHE_PREFIX}*`);
+  }
+}
 // src/infrastructure/cache/RedisCache.ts
 var import_ioredis = __toESM(require_built3(), 1);
 class RedisCache {
@@ -57732,6 +58217,43 @@ class RedisCache {
     await this.set(key, value, ttlSeconds);
     return value;
   }
+  async deletePattern(pattern) {
+    if (!this.isConnected || !this.client) {
+      this.logger.debug(`Pattern delete (Memory fallback): ${pattern}`);
+      let count = 0;
+      for (const key of this.memoryFallback.keys()) {
+        if (this.matchPattern(key, pattern)) {
+          this.memoryFallback.delete(key);
+          count++;
+        }
+      }
+      return count;
+    }
+    try {
+      let cursor = "0";
+      let deletedCount = 0;
+      do {
+        const [newCursor, keys] = await this.client.scan(cursor, "MATCH", pattern, "COUNT", 100);
+        cursor = newCursor;
+        if (keys.length > 0) {
+          await this.client.del(...keys);
+          deletedCount += keys.length;
+        }
+      } while (cursor !== "0");
+      this.logger.debug(`Pattern deleted: ${pattern} (${deletedCount} keys)`);
+      return deletedCount;
+    } catch (error) {
+      this.logger.error("Pattern delete error:", error);
+      return 0;
+    }
+  }
+  matchPattern(key, pattern) {
+    if (pattern.endsWith("*")) {
+      const prefix = pattern.slice(0, -1);
+      return key.startsWith(prefix);
+    }
+    return key === pattern;
+  }
   isRedisConnected() {
     return this.isConnected;
   }
@@ -57764,230 +58286,6 @@ class RedisCache {
   }
 }
 var cache = new RedisCache;
-// src/infrastructure/repositories/folder/FolderRepository.ts
-class FolderRepository {
-  db;
-  logger = {
-    debug: (method, ...args) => {
-      if (ENV.isDevelopment) {
-        console.log(`[FolderRepo.${method}]`, ...args);
-      }
-    },
-    error: (method, error) => {
-      console.error(`[FolderRepo.${method}] Error:`, error);
-    }
-  };
-  constructor(db2 = db) {
-    this.db = db2;
-  }
-  toFolder(record) {
-    return {
-      id: record.id,
-      name: record.name,
-      parentId: record.parentId,
-      isFolder: record.isFolder,
-      createdAt: record.createdAt,
-      updatedAt: record.updatedAt,
-      deletedAt: record.deletedAt
-    };
-  }
-  notDeleted() {
-    return isNull(folders.deletedAt);
-  }
-  async findAll(options = {}) {
-    const { page = 1, limit = 50, includeDeleted = false } = options;
-    const offset = (page - 1) * limit;
-    this.logger.debug("findAll", { page, limit, includeDeleted });
-    const baseCondition = includeDeleted ? undefined : this.notDeleted();
-    const [records, totalResult] = await Promise.all([
-      this.db.select().from(folders).where(baseCondition).orderBy(desc(folders.isFolder), folders.name).limit(limit).offset(offset),
-      this.db.select({ count: sql`count(*)` }).from(folders).where(baseCondition)
-    ]);
-    const total = totalResult[0]?.count ?? 0;
-    return {
-      data: records.map((r2) => this.toFolder(r2)),
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit)
-      }
-    };
-  }
-  async findById(id, includeDeleted = false) {
-    this.logger.debug("findById", { id, includeDeleted });
-    const conditions = includeDeleted ? eq(folders.id, id) : and(eq(folders.id, id), this.notDeleted());
-    const records = await this.db.select().from(folders).where(conditions).limit(1);
-    return records.length > 0 ? this.toFolder(records[0]) : null;
-  }
-  async findByParentId(parentId) {
-    this.logger.debug("findByParentId", { parentId });
-    const parentCondition = parentId === null ? isNull(folders.parentId) : eq(folders.parentId, parentId);
-    const records = await this.db.select().from(folders).where(and(parentCondition, this.notDeleted())).orderBy(desc(folders.isFolder), folders.name);
-    return records.map((r2) => this.toFolder(r2));
-  }
-  static TREE_CACHE_KEY = "folder:tree";
-  static TREE_CACHE_TTL = 300;
-  async getFolderTree() {
-    return cache.getOrSet(FolderRepository.TREE_CACHE_KEY, () => this.buildFolderTree(), FolderRepository.TREE_CACHE_TTL);
-  }
-  async buildFolderTree() {
-    this.logger.debug("buildFolderTree (cache miss)");
-    const allFolders = await this.db.select().from(folders).where(and(eq(folders.isFolder, true), this.notDeleted())).orderBy(folders.name);
-    const folderMap = new Map;
-    const rootFolders = [];
-    for (const record of allFolders) {
-      folderMap.set(record.id, {
-        ...this.toFolder(record),
-        children: []
-      });
-    }
-    for (const record of allFolders) {
-      const node = folderMap.get(record.id);
-      if (record.parentId === null) {
-        rootFolders.push(node);
-      } else {
-        const parent = folderMap.get(record.parentId);
-        if (parent) {
-          parent.children.push(node);
-        }
-      }
-    }
-    return rootFolders;
-  }
-  invalidateTreeCache() {
-    cache.delete(FolderRepository.TREE_CACHE_KEY);
-  }
-  async search(query, limit = MAX_SEARCH_RESULTS) {
-    this.logger.debug("search", { query, limit });
-    const sanitizedQuery = query.replace(/[%_]/g, "\\$&");
-    const records = await this.db.select().from(folders).where(and(like(folders.name, `%${sanitizedQuery}%`), this.notDeleted())).orderBy(desc(folders.isFolder), folders.name).limit(limit);
-    return records.map((r2) => this.toFolder(r2));
-  }
-  async searchWithCursor(options) {
-    const safeLimit = Math.min(options.limit || MAX_SEARCH_RESULTS, MAX_QUERY_LIMIT);
-    const { query, cursor } = options;
-    this.logger.debug("searchWithCursor", { query, limit: safeLimit, cursor });
-    const sanitizedQuery = query.replace(/[%_]/g, "\\$&");
-    let lastId = null;
-    if (cursor) {
-      try {
-        lastId = parseInt(Buffer.from(cursor, "base64").toString("utf-8"), 10);
-      } catch {
-        lastId = null;
-      }
-    }
-    const baseConditions = [
-      like(folders.name, `%${sanitizedQuery}%`),
-      this.notDeleted()
-    ];
-    if (lastId !== null) {
-      baseConditions.push(gt(folders.id, lastId));
-    }
-    const records = await this.db.select().from(folders).where(and(...baseConditions)).orderBy(folders.id).limit(safeLimit + 1);
-    const hasMore = records.length > safeLimit;
-    const data = records.slice(0, safeLimit).map((r2) => this.toFolder(r2));
-    const nextCursor = hasMore && data.length > 0 ? Buffer.from(String(data[data.length - 1].id)).toString("base64") : null;
-    return {
-      data,
-      cursor: {
-        next: nextCursor,
-        hasMore
-      }
-    };
-  }
-  async count(includeDeleted = false) {
-    this.logger.debug("count", { includeDeleted });
-    const condition = includeDeleted ? undefined : this.notDeleted();
-    const result = await this.db.select({ count: sql`count(*)` }).from(folders).where(condition);
-    return result[0]?.count ?? 0;
-  }
-  async create(name, parentId, isFolder) {
-    this.logger.debug("create", { name, parentId, isFolder });
-    if (parentId !== null) {
-      const parent = await this.findById(parentId);
-      if (!parent) {
-        throw new FolderNotFoundException(parentId);
-      }
-      if (!parent.isFolder) {
-        throw new ParentNotFolderException(parentId);
-      }
-    }
-    const result = await this.db.insert(folders).values({
-      name,
-      parentId,
-      isFolder
-    });
-    const insertId = result[0].insertId;
-    const created = await this.findById(insertId);
-    if (!created)
-      throw new FolderCreationFailedException({ insertId });
-    this.invalidateTreeCache();
-    return created;
-  }
-  async update(id, name) {
-    this.logger.debug("update", { id, name });
-    const existing = await this.findById(id);
-    if (!existing)
-      throw new FolderNotFoundException(id);
-    await this.db.update(folders).set({ name }).where(eq(folders.id, id));
-    this.invalidateTreeCache();
-    return { ...existing, name };
-  }
-  async delete(id) {
-    this.logger.debug("delete (soft)", { id });
-    const existing = await this.findById(id);
-    if (!existing)
-      throw new FolderNotFoundException(id);
-    const idsToDelete = await this.collectDescendantIds(id);
-    idsToDelete.push(id);
-    const now = new Date;
-    if (idsToDelete.length > 0) {
-      await this.db.update(folders).set({ deletedAt: now }).where(inArray(folders.id, idsToDelete));
-    }
-    this.invalidateTreeCache();
-  }
-  async hardDelete(id) {
-    this.logger.debug("hardDelete", { id });
-    const existing = await this.findById(id, true);
-    if (!existing)
-      throw new FolderNotFoundException(id);
-    const idsToDelete = await this.collectDescendantIds(id, true);
-    idsToDelete.push(id);
-    if (idsToDelete.length > 0) {
-      await this.db.delete(folders).where(inArray(folders.id, idsToDelete));
-    }
-    this.invalidateTreeCache();
-  }
-  async restore(id) {
-    this.logger.debug("restore", { id });
-    const existing = await this.findById(id, true);
-    if (!existing)
-      throw new FolderNotFoundException(id);
-    if (!existing.deletedAt)
-      throw new FolderNotDeletedException(id);
-    const idsToRestore = await this.collectDescendantIds(id, true);
-    idsToRestore.push(id);
-    await this.db.update(folders).set({ deletedAt: null }).where(inArray(folders.id, idsToRestore));
-    const restored = await this.findById(id);
-    if (!restored)
-      throw new Error("Failed to restore folder");
-    this.invalidateTreeCache();
-    return restored;
-  }
-  async collectDescendantIds(parentId, includeDeleted = false) {
-    const allIds = [];
-    let currentParentIds = [parentId];
-    while (currentParentIds.length > 0) {
-      const condition = includeDeleted ? inArray(folders.parentId, currentParentIds) : and(inArray(folders.parentId, currentParentIds), this.notDeleted());
-      const children = await this.db.select({ id: folders.id }).from(folders).where(condition);
-      const childIds = children.map((c) => c.id);
-      allIds.push(...childIds);
-      currentParentIds = childIds;
-    }
-    return allIds;
-  }
-}
 // src/application/folder/usecases/GetFolderTree.ts
 class GetFolderTreeUseCase {
   folderRepository;
@@ -58008,6 +58306,16 @@ class GetChildrenUseCase {
     return this.folderRepository.findByParentId(parentId);
   }
 }
+// src/application/folder/usecases/GetChildrenWithCursor.ts
+class GetChildrenWithCursorUseCase {
+  folderRepository;
+  constructor(folderRepository) {
+    this.folderRepository = folderRepository;
+  }
+  async execute(parentId, options = {}) {
+    return this.folderRepository.findByParentIdWithCursor(parentId, options);
+  }
+}
 // src/application/folder/usecases/GetFolder.ts
 class GetFolderUseCase {
   folderRepository;
@@ -58020,15 +58328,17 @@ class GetFolderUseCase {
 }
 // src/application/folder/usecases/CreateFolder.ts
 class CreateFolderUseCase {
-  folderRepository;
-  constructor(folderRepository) {
-    this.folderRepository = folderRepository;
+  readRepository;
+  writeRepository;
+  constructor(readRepository, writeRepository) {
+    this.readRepository = readRepository;
+    this.writeRepository = writeRepository;
   }
   async execute(name, parentId, isFolder = true) {
     if (!name || name.trim().length === 0) {
       throw new Error(ERROR_MESSAGES.INVALID_NAME);
     }
-    return this.folderRepository.create(name.trim(), parentId, isFolder);
+    return this.writeRepository.create(name.trim(), parentId, isFolder);
   }
 }
 // src/application/folder/usecases/UpdateFolder.ts
@@ -58095,7 +58405,16 @@ var FolderSchema = {
     id: t.Object({ id: t.String() })
   },
   query: {
-    search: t.Object({ q: t.Optional(t.String()) })
+    search: t.Object({ q: t.Optional(t.String()) }),
+    searchWithCursor: t.Object({
+      q: t.Optional(t.String()),
+      limit: t.Optional(t.String()),
+      cursor: t.Optional(t.String())
+    }),
+    cursorPagination: t.Object({
+      limit: t.Optional(t.String()),
+      cursor: t.Optional(t.String())
+    })
   },
   body: {
     create: t.Object({
@@ -58214,15 +58533,17 @@ var ApiResponseHelper = {
 class FolderController {
   getFolderTreeUseCase;
   getChildrenUseCase;
+  getChildrenWithCursorUseCase;
   getFolderUseCase;
   createFolderUseCase;
   updateFolderUseCase;
   deleteFolderUseCase;
   searchFoldersUseCase;
   searchFoldersWithCursorUseCase;
-  constructor(getFolderTreeUseCase, getChildrenUseCase, getFolderUseCase, createFolderUseCase, updateFolderUseCase, deleteFolderUseCase, searchFoldersUseCase, searchFoldersWithCursorUseCase) {
+  constructor(getFolderTreeUseCase, getChildrenUseCase, getChildrenWithCursorUseCase, getFolderUseCase, createFolderUseCase, updateFolderUseCase, deleteFolderUseCase, searchFoldersUseCase, searchFoldersWithCursorUseCase) {
     this.getFolderTreeUseCase = getFolderTreeUseCase;
     this.getChildrenUseCase = getChildrenUseCase;
+    this.getChildrenWithCursorUseCase = getChildrenWithCursorUseCase;
     this.getFolderUseCase = getFolderUseCase;
     this.createFolderUseCase = createFolderUseCase;
     this.updateFolderUseCase = updateFolderUseCase;
@@ -58239,9 +58560,6 @@ class FolderController {
     return ApiResponseHelper.success(data, "Search completed");
   }
   async searchWithCursor({ query }) {
-    if (!this.searchFoldersWithCursorUseCase) {
-      return ApiResponseHelper.error("Cursor search not configured");
-    }
     const data = await this.searchFoldersWithCursorUseCase.execute({
       query: query.q || "",
       limit: query.limit ? parseInt(query.limit, 10) : undefined,
@@ -58253,6 +58571,15 @@ class FolderController {
     const parentId = params.id === "root" ? null : parseInt(params.id);
     const data = await this.getChildrenUseCase.execute(parentId);
     return ApiResponseHelper.success(data, "Children retrieved");
+  }
+  async getChildrenWithCursor({ params, query }) {
+    const parentId = params.id === "root" ? null : parseInt(params.id);
+    const limit = query.limit ? parseInt(query.limit, 10) : undefined;
+    const data = await this.getChildrenWithCursorUseCase.execute(parentId, {
+      limit,
+      cursor: query.cursor
+    });
+    return ApiResponseHelper.success(data, "Children retrieved with pagination");
   }
   async getById({ params, set: set2 }) {
     const id = parseInt(params.id);
@@ -58392,14 +58719,32 @@ var redisRateLimitMiddleware = (config = {
 };
 // src/presentation/routes/v1/folderRoutes.ts
 var folderRepository = new FolderRepository;
-var controller = new FolderController(new GetFolderTreeUseCase(folderRepository), new GetChildrenUseCase(folderRepository), new GetFolderUseCase(folderRepository), new CreateFolderUseCase(folderRepository), new UpdateFolderUseCase(folderRepository), new DeleteFolderUseCase(folderRepository), new SearchFoldersUseCase(folderRepository), new SearchFoldersWithCursorUseCase(folderRepository));
-var folderRoutes = new Elysia({ prefix: "/folders" }).use(authMiddleware()).get("/tree", (ctx) => controller.getTree()).get("/search", (ctx) => controller.search(ctx), { query: FolderSchema.query.search }).get("/search/cursor", (ctx) => controller.searchWithCursor(ctx), {
-  query: t.Object({
-    q: t.Optional(t.String()),
-    limit: t.Optional(t.String()),
-    cursor: t.Optional(t.String())
-  })
-}).get("/:id/children", (ctx) => controller.getChildren(ctx), { params: FolderSchema.params.id }).get("/:id", (ctx) => controller.getById(ctx), { params: FolderSchema.params.id }).post("/", (ctx) => controller.create(ctx), { body: FolderSchema.body.create }).patch("/:id", (ctx) => controller.update(ctx), { params: FolderSchema.params.id, body: FolderSchema.body.update }).delete("/:id", (ctx) => controller.delete(ctx), { params: FolderSchema.params.id });
+var cachedTreeRepository = new CachedFolderTreeRepository(folderRepository, cache);
+var cachedReadRepository = new CachedFolderReadRepository(folderRepository, cache);
+var cachedSearchRepository = new CachedFolderSearchRepository(folderRepository, cache);
+var controller = new FolderController(new GetFolderTreeUseCase(cachedTreeRepository), new GetChildrenUseCase(cachedReadRepository), new GetChildrenWithCursorUseCase(cachedReadRepository), new GetFolderUseCase(folderRepository), new CreateFolderUseCase(folderRepository, folderRepository), new UpdateFolderUseCase(folderRepository), new DeleteFolderUseCase(folderRepository), new SearchFoldersUseCase(cachedSearchRepository), new SearchFoldersWithCursorUseCase(cachedSearchRepository));
+var folderRoutes = new Elysia({ prefix: "/folders" }).use(authMiddleware()).onAfterHandle(({ request, set: set2 }) => {
+  if (request.method === "GET") {
+    set2.headers["Cache-Control"] = "public, max-age=60, stale-while-revalidate=300";
+  } else {
+    set2.headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
+  }
+}).get("/tree", (ctx) => controller.getTree()).get("/search", (ctx) => controller.search(ctx), { query: FolderSchema.query.search }).get("/search/cursor", (ctx) => controller.searchWithCursor(ctx), { query: FolderSchema.query.searchWithCursor }).get("/:id/children/cursor", (ctx) => controller.getChildrenWithCursor(ctx), {
+  params: FolderSchema.params.id,
+  query: FolderSchema.query.cursorPagination
+}).get("/:id/children", (ctx) => controller.getChildren(ctx), { params: FolderSchema.params.id }).get("/:id", (ctx) => controller.getById(ctx), { params: FolderSchema.params.id }).post("/", async (ctx) => {
+  const result = await controller.create(ctx);
+  await cache.deletePattern("folder:*");
+  return result;
+}, { body: FolderSchema.body.create }).patch("/:id", async (ctx) => {
+  const result = await controller.update(ctx);
+  await cache.deletePattern("folder:*");
+  return result;
+}, { params: FolderSchema.params.id, body: FolderSchema.body.update }).delete("/:id", async (ctx) => {
+  const result = await controller.delete(ctx);
+  await cache.deletePattern("folder:*");
+  return result;
+}, { params: FolderSchema.params.id });
 
 // src/presentation/routes/v1/index.ts
 var v1Routes = new Elysia({ prefix: "/v1" }).use(folderRoutes);

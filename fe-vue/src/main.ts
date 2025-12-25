@@ -2,8 +2,6 @@ import { createApp } from "vue";
 import App from "./App.vue";
 import router from "./router";
 import "./style.css";
-import "vue-virtual-scroller/dist/vue-virtual-scroller.css";
-import VueVirtualScroller from "vue-virtual-scroller";
 import { VueQueryPlugin, QueryClient } from "@tanstack/vue-query";
 
 // Configure TanStack Query
@@ -20,6 +18,5 @@ const queryClient = new QueryClient({
 
 createApp(App)
   .use(router)
-  .use(VueVirtualScroller)
   .use(VueQueryPlugin, { queryClient })
   .mount("#app");
