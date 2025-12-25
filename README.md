@@ -41,48 +41,34 @@ A full-stack Windows Explorer clone built with Clean Architecture principles, de
 - **Deployment:** Docker Compose setup with all services containerized
 - **Data Integrity:** ACID transactions, Read/Write database split
 
-### � Verified Metrics
-- ✅ **1,167 rows** seeded automatically
-- ✅ **Zero errors** in fresh clone setup
-- ✅ **All tests passing** in CI/CD ready state
-
 > **For detailed performance metrics, architecture decisions, and implementation details, see [TECHNICAL-SPESIFICATION-DOCUMENT.md](./TECHNICAL-SPESIFICATION-DOCUMENT.md)**
 
 ---
 
 ## ⚡ Try It in 3 Minutes
 
-**For busy interviewers - complete setup:**
-
 ```bash
-# Step 1: Clone repository
+# 1. Clone repository
 git clone <repository-url>
 cd windows-explorer
 
-# Step 2: Start all services (Docker builds: ~2 min)
+# 2. Start all services
 docker-compose up -d --build
 
-# Step 3: Setup database (~30 sec)
+# 3. Setup database
 cd be-elysia
 bun install
-bun run db:push     # Create tables with indexes
-bun run db:seed     # Generate 1,167 test rows
+bun run db:push
+bun run db:seed
 
-# Step 4: Open in browser
+# 4. Open in browser
 open http://localhost:8080
 ```
 
-**✨ What you'll see:**
-- 7 root folders with nested hierarchies
-- Fast tree navigation (10-15ms response)
-- Real-time search across 1000+ items
-- Grid/List view toggle
-- 20+ file type icons
-
-**🧪 Run tests (optional):**
+**Run tests (optional):**
 ```bash
-cd be-elysia && bun test              # 53 backend tests
-cd fe-vue && bun test src/__tests__   # 21 frontend tests
+cd be-elysia && bun test
+cd fe-vue && bun test src/__tests__
 ```
 
 ---
@@ -126,13 +112,12 @@ For comprehensive information about architecture, design decisions, algorithms, 
 
 **📖 Setup & Usage:**
 4. [Tech Stack](#-tech-stack)
-5. [Docker Setup](#-docker-setup)
-6. [Database Management](#-database-management)
-7. [Running the Application](#-running-the-application)
-8. [Testing](#-testing)
-9. [API Documentation](#-api-documentation)
-10. [Environment Variables](#-environment-variables)
-11. [Troubleshooting](#-troubleshooting)
+5. [Database Management](#-database-management)
+6. [Running the Application](#-running-the-application)
+7. [Testing](#-testing)
+8. [API Documentation](#-api-documentation)
+9. [Environment Variables](#-environment-variables)
+10. [Troubleshooting](#-troubleshooting)
 
 **🏗️ Technical Details:**
 - [Architecture & Design Decisions](./TECHNICAL-SPESIFICATION-DOCUMENT.md)
@@ -157,8 +142,6 @@ For comprehensive information about architecture, design decisions, algorithms, 
 
 ### 🐳 Option 1: Docker + Minimal Local Setup (Recommended)
 
-**Best for:** New users, quick testing, production-like environment
-
 ```bash
 # 1. Clone and enter directory
 git clone <repository-url>
@@ -174,20 +157,11 @@ bun run db:push    # Create tables
 bun run db:seed    # Load sample data (1264 items)
 ```
 
-**🎉 Done! Open:** http://localhost:8080
-
-**Benefits:**
-- ✅ Services run in Docker (production-like)
-- ✅ Minimal local setup needed
-- ✅ Fast and reliable
-
-**Note:** Database operations run locally because the production Docker image excludes dev dependencies like `drizzle-kit` for security/size optimization.
+**Done!** Open http://localhost:8080
 
 ---
 
 ### 💻 Option 2: Full Development Setup
-
-**Best for:** Active development, running tests, IDE support
 
 ```bash
 # 1. Clone and enter directory
@@ -211,27 +185,16 @@ bun run db:seed    # Load sample data (1264 items)
 cd ../fe-vue
 bun install
 
-# 6. Run tests
+# 6. Run tests (optional)
 cd ../be-elysia && bun test        # Backend tests (53 tests)
 cd ../fe-vue && bun test src/__tests__  # Frontend tests (21 tests)
 ```
 
-**🎉 Done! Open:** http://localhost:8080
-
-**Benefits:**
-- ✅ IDE autocomplete/intellisense
-- ✅ Run tests locally
-- ✅ Faster iteration during development
-- ✅ Direct database operations
-
-**Why local install?**
-- Database migrations/seeding run on host machine (not in Docker)
-- Tests require local dependencies
-- IDE needs node_modules for type checking
+**Done!** Open http://localhost:8080
 
 ---
 
-### ✅ Quick Verification (Both Options)
+### ✅ Quick Verification
 
 ```bash
 # Check services are running
@@ -242,140 +205,37 @@ curl http://localhost:3001/api/v1/folders/tree
 
 # Test frontend
 curl http://localhost:8080
-```
-
----
-
-## 🐳 Docker Setup
-
-### Available Services
-
-| Service | Port | Description |
-|---------|------|-------------|
-| `folder-explorer-web` | 8080 | Frontend (Vue + Nginx) |
-| `folder-explorer-api` | 3001 | Backend (Elysia.js) |
-| `folder-explorer-db` | 3309 | MySQL 8.0 Database |
-| `folder-explorer-cache` | 6379 | Redis Cache |
-
-### Service URLs
-
-| Service | URL | Purpose |
-|---------|-----|---------|
-| Frontend | http://localhost:8080 | Main UI |
-| API | http://localhost:3001/api | REST API |
-| Swagger | http://localhost:3001/api/docs | API Documentation |
-| Health Check | http://localhost:3001/health | Service Status |
-
-### Docker Commands
-
-```bash
-# Start all services
-docker-compose up -d
-
-# Start with rebuild (after code changes)
-docker-compose up -d --build
-
-# View logs (all services)
-docker-compose logs -f
-
-# View logs (specific service)
-docker-compose logs -f folder-explorer-api
-
-# Stop all services
-docker-compose down
-
-# Stop and remove all data (reset)
-docker-compose down -v
-
-# Restart specific service
-docker restart folder-explorer-api
-
-# Check service status
-docker-compose ps
-```
-
-### Troubleshooting Docker
-
-```bash
-# If port conflicts occur
-docker-compose down
-docker-compose up -d
-
-# Check if ports are available
-lsof -i :8080  # Frontend
-lsof -i :3001  # Backend
-lsof -i :3309  # MySQL
-lsof -i :6379  # Redis
-
-# Remove all stopped containers
-docker container prune
-
-# Rebuild from scratch
-docker-compose down -v
-docker-compose build --no-cache
-docker-compose up -d
-```
-
----
-
-## 🗄️ Database Management
-
-### Understanding Database Operations
-
-Database operations (migrations, seeding) run on your **host machine**, not inside Docker containers. This is because:
-- Production Docker images exclude dev dependencies (`drizzle-kit`) for security/size
-- Allows flexible database management without rebuilding containers
-- Enables direct access to migration files and schema
-
-**Connection:** Your local CLI connects to the MySQL database running in Docker (port 3309).
-
----
 
 ### Initial Setup
 
 ```bash
 cd be-elysia
-
-# Install dependencies (includes drizzle-kit)
 bun install
-
-# Create database tables (push schema)
 bun run db:push
-
-# Seed sample data (1264 folders/files)
 bun run db:seed
 ```
 
 ### Available Commands
 
 ```bash
-# Create/Update tables from schema
-bun run db:push
-
-# Generate migration files
-bun run db:generate
-
-# Run migrations
-bun run db:migrate
-
-# Seed database with sample data (1000+ items)
-bun run db:seed
-
-# Open Drizzle Studio (GUI)
-bun run db:studio
+bun run db:push       # Create/Update tables
+bun run db:generate   # Generate migrations
+bun run db:migrate    # Run migrations
+bun run db:seed       # Seed sample data
+bun run db:studio     # Open Drizzle Studio
 ```
 
 ### Database Schema
 
 **Tables:**
-- `folders` - Main table storing folders and files
+- `folders` - Folders and files
 
 **Indexes:**
-- `parent_id_idx` - Fast parent queries (30x faster)
-- `name_idx` - Fast name searches (75x faster)
-- `parent_active_name_idx` - Composite for active folders
-- `folder_active_name_idx` - Folder type filtering
-- `active_name_idx` - Active folder queries
+- `parent_id_idx`
+- `name_idx`
+- `parent_active_name_idx`
+- `folder_active_name_idx`
+- `active_name_idx`
 
 ### Manual Database Access
 
@@ -543,35 +403,6 @@ bunx playwright test e2e/folder-navigation.spec.ts
 # Generate test report
 bunx playwright show-report
 ```
-
-**Test Coverage:**
-- ✅ **16 E2E tests**
-- App loading & navigation
-- Folder tree interactions
-- Search functionality
-- Keyboard navigation
-- Accessibility (ARIA)
-
-### Manual Testing Checklist
-
-**Core Functionality:**
-- [ ] Tree loads and displays folders
-- [ ] Click folder shows children in right panel
-- [ ] Search returns correct results
-- [ ] Create folder works
-- [ ] Rename folder works
-- [ ] Delete folder works
-- [ ] Grid/List view toggle works
-
-**Performance:**
-- [ ] Tree loads in < 50ms
-- [ ] Search returns in < 100ms
-- [ ] No lag when expanding folders
-
-**Edge Cases:**
-- [ ] Empty folder shows placeholder
-- [ ] Search with no results shows message
-- [ ] Error handling displays correctly
 
 ---
 
@@ -950,12 +781,6 @@ docker logs folder-explorer-api
 - [Vue 3 Documentation](https://vuejs.org)
 - [Drizzle ORM Documentation](https://orm.drizzle.team)
 - [TanStack Query Documentation](https://tanstack.com/query)
-
----
-
-## 📄 License
-
-MIT License - Feel free to use for learning and commercial projects.
 
 ---
 
