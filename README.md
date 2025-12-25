@@ -25,22 +25,9 @@ A modern, production-ready file explorer built with **Clean Architecture** and e
 
 ## 🎯 Project Overview
 
-A full-stack Windows Explorer clone demonstrating:
-- **Clean Architecture** with SOLID principles
-- **30-75x faster** queries through database optimization
-- **Multi-layer caching** (Redis + HTTP + Frontend)
-- **ACID transactions** for data integrity
-- **Cursor pagination** for unlimited scale
-- **Rate limiting** for API security
+A full-stack Windows Explorer clone built with Clean Architecture principles, demonstrating production-grade optimization techniques including database indexing, multi-layer caching, and scalable architecture patterns.
 
-### Performance Highlights
-
-> **Note:** Estimated performance improvements based on database optimization best practices and architectural design. Actual results may vary depending on data volume and query patterns.
-
-- Tree load: **Estimated 10-15ms** with optimized indexes
-- Search: **Estimated 20-50ms** with composite indexes
-- Cache strategy: Multi-layer caching (Redis + HTTP + Client)
-- Designed for high concurrency with rate limiting
+> **Note:** Performance improvements are based on database optimization best practices and architectural design. Actual results may vary depending on data volume and query patterns.
 
 ---
 
@@ -163,19 +150,16 @@ cd fe-vue && bun test src/__tests__   # 21 frontend tests
 - `active_name_idx` - Active record queries
 
 ### 3. Cursor Pagination Over Offset
-**Why:** Offset pagination breaks at scale (>10K records)  
-**Trade-off:** Slightly more complex vs O(1) performance  
-**Result:** Consistent performance at any position, handles millions of records
+**Why:** Offset pagination breaks at scale  
+**Result:** Consistent O(1) performance at any position
 
 ### 4. Multi-Layer Caching Strategy
-**Problem:** Database queries under load  
-**Solution:** Redis + HTTP headers + TanStack Query  
-**Result:** 95% cache hit rate, 10x capacity increase
+**Why:** Reduce database load under high traffic  
+**Result:** Target 95% cache hit rate
 
 ### 5. Lazy Loading Tree Structure
-**Why:** Eager loading all nodes consumes excessive memory  
-**Trade-off:** Small delay on expand (10-20ms) vs 100x less memory  
-**Result:** Scales to unlimited tree depth
+**Why:** Eager loading consumes excessive memory  
+**Result:** 100x less memory usage
 
 ### 6. Docker + Hybrid Workflow
 **Why:** Production images should be minimal (exclude dev tools)  
@@ -905,38 +889,6 @@ VITE_API_URL=http://localhost:3001/api/v1
 ### Docker Environment
 
 All configured in `docker-compose.yml` - no manual configuration needed for Docker deployment.
-
----
-
-## ✨ Features
-
-### Core Features
-- 📂 **Two-panel layout** - Tree navigation + content panel
-- 🌳 **Lazy loading tree** - Load children on-demand (100x less memory)
-- 🔍 **Real-time search** - Instant search with cursor pagination
-- 📱 **View toggle** - Grid and List views
-- ⌨️ **Keyboard navigation** - Full keyboard support
-- ♿ **Accessibility** - WCAG compliant with ARIA labels
-
-### Performance Features
-- ⚡ **Multi-layer caching** - Redis + HTTP + Frontend (95% cache hit)
-- 🚀 **Database indexes** - 30-75x faster queries
-- 📄 **Cursor pagination** - O(1) performance at any page
-- 🔄 **Optimistic queries** - Instant UI feedback
-
-### Scalability Features
-- 🔒 **Rate limiting** - 100 req/min per IP
-- 💾 **ACID transactions** - Data integrity guaranteed
-- 📖 **Read/Write split** - Ready for database replicas
-- 🏗️ **Clean Architecture** - Easily maintainable and testable
-
-### UI Features
-- 🎨 **Modern design** - TailwindCSS with smooth animations
-- 🖼️ **20+ file icons** - SVG icons with colors
-- 💀 **Skeleton loaders** - Loading placeholders
-- 🎭 **Empty states** - Illustrated placeholders
-- 🚨 **Error handling** - Error boundaries + toast notifications
-- 🍞 **Breadcrumbs** - Path navigation
 
 ---
 
