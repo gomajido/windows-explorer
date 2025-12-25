@@ -12,14 +12,14 @@ A modern, production-ready file explorer built with **Clean Architecture** and e
 ## 👋 For Reviewers/Interviewers
 
 > **⏱️ Time to Review:** 5-10 minutes  
-> **🎯 What Makes This Special:** Production-grade architecture with 30-75x performance gains  
-> **✅ Fully Tested:** 74/74 tests passing, zero errors in fresh clone setup  
+> **🎯 Focus:** Production-grade Clean Architecture with optimization techniques  
+> **✅ Status:** 74/74 tests passing, zero errors in fresh clone setup  
 
 **Quick Navigation:**
-- **[Key Achievements](#-key-achievements)** - What makes this project stand out (2 min)
-- **[Technical Highlights](#-technical-decision-highlights)** - Why certain choices were made (3 min)
-- **[Try It in 3 Minutes](#-try-it-in-3-minutes)** - Run it yourself (3 min)
-- **[Testing Results](#-testing)** - Comprehensive test coverage (1 min)
+- **[Project Highlights](#-project-highlights)** - Key features (1 min)
+- **[Try It in 3 Minutes](#-try-it-in-3-minutes)** - Quick setup (3 min)
+- **[Testing](#-testing)** - Test coverage (1 min)
+- **[Technical Details](./TECHNICAL-SPESIFICATION-DOCUMENT.md)** - Complete architecture docs
 
 ---
 
@@ -31,63 +31,22 @@ A full-stack Windows Explorer clone built with Clean Architecture principles, de
 
 ---
 
-## 🏆 Key Achievements
+## 🏆 Project Highlights
 
-### Performance Optimization
-- ✅ **30-75x faster queries** through strategic database indexing
-  - 5 custom indexes (parent_id, name, composite indexes)
-  - Query optimization from 300ms → 10ms
-- ✅ **95% cache hit rate** with multi-layer caching strategy
-  - Redis for server-side caching
-  - TanStack Query for client-side caching
-  - HTTP cache headers
-- ✅ **Scalable for high concurrency**
-  - Rate limiting (100 req/min per IP)
-  - Connection pooling
-  - Read/Write database split implemented
+### ✅ Production-Ready Features
+- **Performance:** Database indexing, multi-layer caching, optimized queries
+- **Testing:** 74/74 tests passing (53 backend, 21 frontend)
+- **Scalability:** Cursor pagination, lazy loading, rate limiting
+- **Architecture:** Clean Architecture with SOLID principles, TypeScript strict mode
+- **Deployment:** Docker Compose setup with all services containerized
+- **Data Integrity:** ACID transactions, Read/Write database split
 
-### Code Quality & Testing
-- ✅ **74/74 tests passing** (verified in fresh clone)
-  - 53 backend tests (use cases, domain, routes)
-  - 21 frontend tests (services, components)
-  - 16 E2E tests (Playwright)
-- ✅ **Zero errors** in fresh GitHub clone setup
-  - Complete walkthrough tested
-  - All services verified
-- ✅ **100% TypeScript** with strict mode
-  - Type-safe end-to-end
-  - Minimal `any` usage (only in abstract base classes and generic constraints)
-- ✅ **Clean Architecture** implementation
-  - SOLID principles applied
-  - Dependency Injection
-  - Repository & Decorator patterns
+### � Verified Metrics
+- ✅ **1,167 rows** seeded automatically
+- ✅ **Zero errors** in fresh clone setup
+- ✅ **All tests passing** in CI/CD ready state
 
-### Production Readiness
-- 🐳 **Docker deployment** ready
-  - Multi-stage builds
-  - All services containerized
-  - Docker Compose orchestration
-- 🔒 **ACID transactions** for data integrity
-  - Automatic rollback on errors
-  - Consistent state guaranteed
-- 🚦 **Rate limiting** implemented
-  - 100 requests per minute per IP
-  - Redis-backed with X-RateLimit headers
-- 📊 **Request logging** implemented
-  - Timestamp-based logging
-  - Request/response tracking
-  - Error logging
-
-### Scalability Features
-- ♾️ **Cursor pagination** for unlimited scale
-  - O(1) performance at any position
-  - Handles millions of records
-- 🌳 **Lazy loading** tree structure
-  - 100x less memory usage
-  - Loads children on-demand
-- 💾 **Database optimization**
-  - 5 performance indexes
-  - Read/Write split implemented (read replicas ready)
+> **For detailed performance metrics, architecture decisions, and implementation details, see [TECHNICAL-SPESIFICATION-DOCUMENT.md](./TECHNICAL-SPESIFICATION-DOCUMENT.md)**
 
 ---
 
@@ -128,45 +87,17 @@ cd fe-vue && bun test src/__tests__   # 21 frontend tests
 
 ---
 
-## 💡 Technical Decision Highlights
+## � Architecture & Technical Details
 
-> **For Technical Interviewers:** Key architectural decisions and trade-offs
+For comprehensive information about architecture, design decisions, algorithms, and performance optimizations, see:
+- **[TECHNICAL-SPESIFICATION-DOCUMENT.md](./TECHNICAL-SPESIFICATION-DOCUMENT.md)** - Complete technical documentation
 
-### 1. Clean Architecture Choice
-**Why:** Separation of concerns, testability, maintainability  
-**Trade-off:** More initial setup vs long-term benefits  
-**Result:** Comprehensive business logic test coverage, easy to swap implementations
-
-### 2. Database Indexing Strategy
-**Problem:** Initial queries took 300-450ms for tree loading  
-**Solution:** 5 strategic indexes (parent_id, name, composite)  
-**Result:** 30x faster (10-15ms), handles 1M+ records efficiently
-
-**Indexes implemented:**
-- `parent_id_idx` - Children queries
-- `name_idx` - Search optimization  
-- `parent_active_name_idx` - Composite for active folders
-- `folder_active_name_idx` - Folder filtering
-- `active_name_idx` - Active record queries
-
-### 3. Cursor Pagination Over Offset
-**Why:** Offset pagination breaks at scale  
-**Result:** Consistent O(1) performance at any position
-
-### 4. Multi-Layer Caching Strategy
-**Why:** Reduce database load under high traffic  
-**Result:** Target 95% cache hit rate
-
-### 5. Lazy Loading Tree Structure
-**Why:** Eager loading consumes excessive memory  
-**Result:** 100x less memory usage
-
-### 6. Docker + Hybrid Workflow
-**Why:** Production images should be minimal (exclude dev tools)  
-**Design:** Services in Docker, database operations on host  
-**Result:** Secure production images, flexible development
-
-**See [TECHNICAL-SPESIFICATION-DOCUMENT.md](./TECHNICAL-SPESIFICATION-DOCUMENT.md) for complete architectural decisions.**
+**Key highlights:**
+- Clean Architecture with SOLID principles
+- 5 strategic database indexes for performance
+- Multi-layer caching (Redis + HTTP + Client)
+- Cursor pagination for unlimited scale
+- Read/Write database split
 
 ---
 
@@ -188,22 +119,25 @@ cd fe-vue && bun test src/__tests__   # 21 frontend tests
 
 ## 📋 Table of Contents
 
-**⭐ For Interviewers:**
-1. [Key Achievements](#-key-achievements) - What makes this special
+**⭐ Quick Start:**
+1. [Project Highlights](#-project-highlights) - Overview
 2. [Try It in 3 Minutes](#-try-it-in-3-minutes) - Quick setup
-3. [Technical Decision Highlights](#-technical-decision-highlights) - Architectural choices
+3. [Quick Start Options](#-quick-start) - Detailed setup
 
-**📖 Documentation:**
+**📖 Setup & Usage:**
 4. [Tech Stack](#-tech-stack)
-5. [Quick Start](#-quick-start) - Detailed setup options
-6. [Docker Setup](#-docker-setup)
-7. [Database Management](#-database-management)
-8. [Running the Application](#-running-the-application)
-9. [Testing](#-testing)
-10. [API Documentation](#-api-documentation)
-11. [Project Structure](#-project-structure)
-12. [Environment Variables](#-environment-variables)
-13. [Troubleshooting](#-troubleshooting)
+5. [Docker Setup](#-docker-setup)
+6. [Database Management](#-database-management)
+7. [Running the Application](#-running-the-application)
+8. [Testing](#-testing)
+9. [API Documentation](#-api-documentation)
+10. [Environment Variables](#-environment-variables)
+11. [Troubleshooting](#-troubleshooting)
+
+**🏗️ Technical Details:**
+- [Architecture & Design Decisions](./TECHNICAL-SPESIFICATION-DOCUMENT.md)
+- [Performance Optimizations](./TECHNICAL-SPESIFICATION-DOCUMENT.md#performance-optimization-implementation)
+- [Project Structure](./TECHNICAL-SPESIFICATION-DOCUMENT.md#project-structure)
 
 ---
 
