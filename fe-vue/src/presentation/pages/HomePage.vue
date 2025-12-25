@@ -13,6 +13,7 @@ const {
   selectedFolderId,
   expandedIds,
   children,
+  hasMoreChildren,
   searchResults,
   hasMoreResults,
   isSearching,
@@ -23,6 +24,7 @@ const {
   loadNodeChildren,
   selectFolder,
   toggleExpanded,
+  loadMoreChildren,
   search,
   loadMoreResults,
   clearSearch,
@@ -208,8 +210,11 @@ onMounted(() => {
         :selected-folder="selectedFolder"
         :children="children"
         :is-loading="isLoading"
+        :is-loading-more="isLoadingMore"
+        :has-more="hasMoreChildren"
         :view-mode="viewMode"
         @open-folder="handleOpenFolder"
+        @load-more="loadMoreChildren"
       />
     </div>
   </div>

@@ -119,6 +119,7 @@ export class FolderRepository implements IFolderRepository {
 
   /**
    * Finds all direct children of a parent folder (excludes soft-deleted).
+   * Legacy method - loads all children. Use findByParentIdWithCursor for large datasets.
    */
   async findByParentId(parentId: number | null): Promise<Folder[]> {
     this.logger.debug("findByParentId", { parentId });
@@ -137,14 +138,121 @@ export class FolderRepository implements IFolderRepository {
   }
 
   /**
-   * Builds the complete folder tree structure using an adjacency list algorithm.
-   * Time Complexity: O(n), Space Complexity: O(n)
-   * Only includes non-deleted folders.
-   * 
-   * Note: Caching is handled by CachedFolderTreeRepository decorator.
+   * Finds children with cursor-based pagination for scalability.
+   * Uses ID-based cursor for O(1) pagination at any position.
+   */
+  async findByParentIdWithCursor(
+    parentId: number | null,
+    options: { limit?: number; cursor?: string } = {}
+  ): Promise<CursorPaginatedResult<Folder>> {
+    const { limit = 50, cursor } = options;
+    this.logger.debug("findByParentIdWithCursor", { parentId, limit, cursor });
+
+    const parentCondition = parentId === null
+      ? isNull(folders.parentId)
+      : eq(folders.parentId, parentId);
+
+    // Decode cursor (base64 encoded last ID)
+    let lastId: number | null = null;
+    if (cursor) {
+      try {
+        lastId = parseInt(Buffer.from(cursor, "base64").toString("utf-8"), 10);
+      } catch {
+        lastId = null;
+      }
+    }
+
+    // Build query with cursor condition
+    const baseConditions = [parentCondition, this.notDeleted()];
+    if (lastId !== null) {
+      baseConditions.push(gt(folders.id, lastId));
+    }
+
+    // Fetch limit + 1 to check if there are more results
+    const records = await this.db
+      .select()
+      .from(folders)
+      .where(and(...baseConditions))
+      .orderBy(desc(folders.isFolder), folders.name, folders.id)
+      .limit(limit + 1);
+
+    const hasMore = records.length > limit;
+    const data = records.slice(0, limit).map((r) => this.toFolder(r));
+
+    // Encode next cursor
+    const nextCursor = hasMore && data.length > 0
+      ? Buffer.from(String(data[data.length - 1].id)).toString("base64")
+      : null;
+
+    return {
+      data,
+      cursor: {
+        next: nextCursor,
+        hasMore,
+      },
+    };
+  }
+
+  /**
+   * ⭐ OPTIMIZED for scale: Load only root folders (lazy loading)
+   * For millions of records, this loads ~100 roots instead of entire tree
+   * Children are loaded on-demand when folders are expanded
    */
   async getFolderTree(): Promise<FolderTreeNode[]> {
-    this.logger.debug("getFolderTree");
+    this.logger.debug("getFolderTree - loading root folders only (lazy)");
+    
+    // Load only root folders with pagination
+    const rootFolders = await this.db
+      .select()
+      .from(folders)
+      .where(and(
+        eq(folders.isFolder, true),
+        isNull(folders.parentId),
+        this.notDeleted()
+      ))
+      .orderBy(folders.name)
+      .limit(100); // Limit roots for initial load
+
+    // Check if each root has children (avoid N+1 queries)
+    const rootIds = rootFolders.map(f => f.id);
+    const childCounts = await this.getChildCounts(rootIds);
+
+    return rootFolders.map(record => ({
+      ...this.toFolder(record),
+      children: [],
+      hasChildren: (childCounts.get(record.id) || 0) > 0,
+    }));
+  }
+
+  /**
+   * Check if folders have children (efficient batch query)
+   * Returns Map of folderId -> child count
+   */
+  private async getChildCounts(parentIds: number[]): Promise<Map<number, number>> {
+    if (parentIds.length === 0) return new Map();
+
+    const counts = await this.db
+      .select({
+        parentId: folders.parentId,
+        count: sql<number>`count(*)`,
+      })
+      .from(folders)
+      .where(and(
+        inArray(folders.parentId, parentIds),
+        eq(folders.isFolder, true),
+        this.notDeleted()
+      ))
+      .groupBy(folders.parentId);
+
+    return new Map(counts.map(c => [c.parentId!, Number(c.count)]));
+  }
+
+  /**
+   * Legacy method: Builds complete tree (USE ONLY FOR SMALL DATASETS)
+   * For production with millions of records, use getFolderTree() + lazy loading
+   */
+  async getFullFolderTree(): Promise<FolderTreeNode[]> {
+    this.logger.debug("getFullFolderTree - WARNING: Loading entire tree");
 
     const allFolders = await this.db
       .select()
@@ -155,7 +263,6 @@ export class FolderRepository implements IFolderRepository {
     const folderMap = new Map<number, FolderTreeNode>();
     const rootFolders: FolderTreeNode[] = [];
 
-    // First pass: Create all nodes
     for (const record of allFolders) {
       folderMap.set(record.id, {
         ...this.toFolder(record),
@@ -163,7 +270,6 @@ export class FolderRepository implements IFolderRepository {
       });
     }
 
-    // Second pass: Link children to parents
     for (const record of allFolders) {
       const node = folderMap.get(record.id)!;
       if (record.parentId === null) {

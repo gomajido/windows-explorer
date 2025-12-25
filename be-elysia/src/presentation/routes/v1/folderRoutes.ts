@@ -5,6 +5,7 @@ import { cache } from "../../../infrastructure/cache";
 import {
   GetFolderTreeUseCase,
   GetChildrenUseCase,
+  GetChildrenWithCursorUseCase,
   GetFolderUseCase,
   CreateFolderUseCase,
   UpdateFolderUseCase,
@@ -27,6 +28,7 @@ const cachedTreeRepository = new CachedFolderTreeRepository(folderRepository, ca
 const controller = new FolderController(
   new GetFolderTreeUseCase(cachedTreeRepository),        // Uses IFolderTreeRepository (cached)
   new GetChildrenUseCase(folderRepository),              // Uses IFolderReadRepository
+  new GetChildrenWithCursorUseCase(folderRepository),    // Uses IFolderReadRepository (paginated)
   new GetFolderUseCase(folderRepository),                // Uses IFolderReadRepository
   new CreateFolderUseCase(folderRepository, folderRepository), // Uses IFolderReadRepository + IFolderWriteRepository
   new UpdateFolderUseCase(folderRepository),             // Uses IFolderWriteRepository
@@ -41,14 +43,12 @@ export const folderRoutes = new Elysia({ prefix: "/folders" })
   .get("/tree", (ctx) => controller.getTree())
   .get("/search", (ctx) => controller.search(ctx), { query: FolderSchema.query.search })
   // Cursor-based search for scalable pagination
-  .get("/search/cursor", (ctx) => controller.searchWithCursor(ctx), {
-    query: t.Object({
-      q: t.Optional(t.String()),
-      limit: t.Optional(t.String()),
-      cursor: t.Optional(t.String()),
-    }),
-  })
+  .get("/search/cursor", (ctx) => controller.searchWithCursor(ctx), { query: FolderSchema.query.searchWithCursor })
   .get("/:id/children", (ctx) => controller.getChildren(ctx), { params: FolderSchema.params.id })
+  .get("/:id/children/cursor", (ctx) => controller.getChildrenWithCursor(ctx), {
+    params: FolderSchema.params.id,
+    query: FolderSchema.query.cursorPagination,
+  })
   .get("/:id", (ctx) => controller.getById(ctx), { params: FolderSchema.params.id })
   // Protected routes
   .post("/", (ctx) => controller.create(ctx), { body: FolderSchema.body.create })

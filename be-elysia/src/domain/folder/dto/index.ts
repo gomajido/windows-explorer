@@ -3,6 +3,8 @@ export type {
   UpdateFolderRequest,
   GetFolderParams,
   SearchFolderQuery,
+  CursorPaginationQuery,
+  SearchWithCursorQuery,
 } from "./FolderDto";
 
 export { FolderSchema } from "./FolderDto";

@@ -2,6 +2,7 @@ import type { Context } from "elysia";
 import type {
   GetFolderTreeUseCase,
   GetChildrenUseCase,
+  GetChildrenWithCursorUseCase,
   GetFolderUseCase,
   CreateFolderUseCase,
   UpdateFolderUseCase,
@@ -9,22 +10,20 @@ import type {
   SearchFoldersUseCase,
   SearchFoldersWithCursorUseCase,
 } from "../../application/folder/usecases";
+import type {
+  CreateFolderRequest,
+  UpdateFolderRequest,
+  SearchFolderQuery,
+  CursorPaginationQuery,
+  SearchWithCursorQuery,
+} from "../../domain/folder/dto";
 import { ApiResponseHelper } from "../types";
-
-interface CreateFolderBody {
-  name: string;
-  parentId?: number | null;
-  isFolder?: boolean;
-}
-
-interface UpdateFolderBody {
-  name: string;
-}
 
 export class FolderController {
   constructor(
     private getFolderTreeUseCase: GetFolderTreeUseCase,
     private getChildrenUseCase: GetChildrenUseCase,
+    private getChildrenWithCursorUseCase: GetChildrenWithCursorUseCase,
     private getFolderUseCase: GetFolderUseCase,
     private createFolderUseCase: CreateFolderUseCase,
     private updateFolderUseCase: UpdateFolderUseCase,
@@ -38,7 +37,7 @@ export class FolderController {
     return ApiResponseHelper.success(data, "Folder tree retrieved");
   }
 
-  async search({ query }: Context<{ query: { q?: string } }>) {
+  async search({ query }: Context<{ query: SearchFolderQuery }>) {
     const data = await this.searchFoldersUseCase.execute(query.q || "");
     return ApiResponseHelper.success(data, "Search completed");
   }
@@ -47,7 +46,7 @@ export class FolderController {
    * Cursor-based search for scalable pagination.
    * Supports millions of records with O(1) pagination.
    */
-  async searchWithCursor({ query }: Context<{ query: { q?: string; limit?: string; cursor?: string } }>) {
+  async searchWithCursor({ query }: Context<{ query: SearchWithCursorQuery }>) {
     if (!this.searchFoldersWithCursorUseCase) {
       return ApiResponseHelper.error("Cursor search not configured");
     }
@@ -65,6 +64,16 @@ export class FolderController {
     return ApiResponseHelper.success(data, "Children retrieved");
   }
 
+  async getChildrenWithCursor({ params, query }: Context<{ params: { id: string }; query: CursorPaginationQuery }>) {
+    const parentId = params.id === "root" ? null : parseInt(params.id);
+    const limit = query.limit ? parseInt(query.limit, 10) : undefined;
+    const data = await this.getChildrenWithCursorUseCase.execute(parentId, {
+      limit,
+      cursor: query.cursor,
+    });
+    return ApiResponseHelper.success(data, "Children retrieved with pagination");
+  }
+
   async getById({ params, set }: Context<{ params: { id: string } }>) {
     const id = parseInt(params.id);
     const data = await this.getFolderUseCase.execute(id);
@@ -75,7 +84,7 @@ export class FolderController {
     return ApiResponseHelper.success(data, "Folder retrieved");
   }
 
-  async create({ body, set }: Context<{ body: CreateFolderBody }>) {
+  async create({ body, set }: Context<{ body: CreateFolderRequest }>) {
     const data = await this.createFolderUseCase.execute(
       body.name,
       body.parentId ?? null,
@@ -89,7 +98,7 @@ export class FolderController {
     params,
     body,
     set,
-  }: Context<{ params: { id: string }; body: UpdateFolderBody }>) {
+  }: Context<{ params: { id: string }; body: UpdateFolderRequest }>) {
     const id = parseInt(params.id);
     try {
       const data = await this.updateFolderUseCase.execute(id, body.name);

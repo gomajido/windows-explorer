@@ -16,6 +16,8 @@ export function useFolderService() {
   const selectedFolder = ref<Folder | null>(null);
   const expandedIds = ref<Set<number>>(new Set());
   const children = ref<Folder[]>([]);
+  const childrenCursor = ref<string | null>(null);
+  const hasMoreChildren = ref(false);
   const searchResults = ref<Folder[]>([]);
   const searchQuery = ref("");
   const searchCursor = ref<string | null>(null);
@@ -141,12 +143,41 @@ export function useFolderService() {
   async function loadChildren(parentId: number | null) {
     isLoading.value = true;
     error.value = null;
+    childrenCursor.value = null;
     try {
-      children.value = await FolderApi.getChildren(parentId);
+      // Use cursor pagination for initial load
+      const result = await FolderApi.getChildrenWithCursor(parentId, { limit: 50 });
+      children.value = result.data;
+      childrenCursor.value = result.cursor.next;
+      hasMoreChildren.value = result.cursor.hasMore;
     } catch (err) {
       error.value = err instanceof Error ? err.message : "Failed to load children";
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  /**
+   * Load more children for infinite scroll (append to existing)
+   */
+  async function loadMoreChildren() {
+    if (!selectedFolder.value || !hasMoreChildren.value || isLoadingMore.value) {
+      return;
+    }
+
+    isLoadingMore.value = true;
+    try {
+      const result = await FolderApi.getChildrenWithCursor(
+        selectedFolder.value.id,
+        { limit: 50, cursor: childrenCursor.value || undefined }
+      );
+      children.value.push(...result.data);
+      childrenCursor.value = result.cursor.next;
+      hasMoreChildren.value = result.cursor.hasMore;
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : "Failed to load more children";
+    } finally {
+      isLoadingMore.value = false;
     }
   }
 
@@ -247,6 +278,7 @@ export function useFolderService() {
     selectedFolderId,
     expandedIds: expandedIdsArray,
     children,
+    hasMoreChildren,
     searchResults,
     searchQuery,
     hasMoreResults,
@@ -258,6 +290,7 @@ export function useFolderService() {
     loadNodeChildren,
     selectFolder,
     loadChildren,
+    loadMoreChildren,
     toggleExpanded,
     expandFolder,
     createFolder,

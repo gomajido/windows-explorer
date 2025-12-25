@@ -7,6 +7,7 @@ import type { Folder, FolderTreeNode, PaginatedResult, FindAllOptions, CursorPag
 export interface IFolderReadRepository {
   findById(id: number, includeDeleted?: boolean): Promise<Folder | null>;
   findByParentId(parentId: number | null): Promise<Folder[]>;
+  findByParentIdWithCursor(parentId: number | null, options?: { limit?: number; cursor?: string }): Promise<CursorPaginatedResult<Folder>>;
   findAll(options?: FindAllOptions): Promise<PaginatedResult<Folder>>;
   count(includeDeleted?: boolean): Promise<number>;
 }

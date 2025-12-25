@@ -28,6 +28,25 @@ export const FolderApi = {
     return result.data;
   },
 
+  /**
+   * Get children with cursor-based pagination for infinite scroll.
+   * Scales to millions of children per folder.
+   */
+  async getChildrenWithCursor(
+    parentId: number | null,
+    options: { limit?: number; cursor?: string } = {}
+  ): Promise<CursorPaginatedResult<Folder>> {
+    const id = parentId === null ? "root" : parentId;
+    let url = `${API_BASE}/${id}/children/cursor?limit=${options.limit || 50}`;
+    if (options.cursor) {
+      url += `&cursor=${encodeURIComponent(options.cursor)}`;
+    }
+    const response = await fetch(url);
+    const result: ApiResponse<CursorPaginatedResult<Folder>> = await response.json();
+    if (result.httpCode >= 400) throw new Error(result.detail || result.message);
+    return result.data;
+  },
+
   async getFolder(id: number): Promise<Folder> {
     const response = await fetch(`${API_BASE}/${id}`);
     const result: ApiResponse<Folder> = await response.json();

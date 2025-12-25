@@ -55,15 +55,33 @@ function handleLoadMore() {
         </span>
       </div>
 
-      <!-- Load More Button -->
-      <div v-if="hasMore" class="p-3 text-center">
+      <!-- Load More Button with helpful instructions -->
+      <div v-if="hasMore" class="p-4 text-center border-t border-gray-200 bg-gray-50">
+        <p class="text-xs text-gray-500 mb-2">
+          🔍 More results found
+        </p>
         <button
           @click="handleLoadMore"
           :disabled="isLoadingMore"
-          class="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          class="px-6 py-2.5 text-sm font-medium text-blue-600 bg-white border border-blue-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
         >
-          {{ isLoadingMore ? 'Loading...' : 'Load More' }}
+          <span v-if="isLoadingMore" class="flex items-center justify-center gap-2">
+            <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Loading...
+          </span>
+          <span v-else class="flex items-center justify-center gap-2">
+            Load More Results
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+          </span>
         </button>
+        <p class="text-xs text-gray-400 mt-2">
+          💡 Scroll down to see the button
+        </p>
       </div>
     </div>
   </div>

@@ -19,6 +19,15 @@ export interface SearchFolderQuery {
   q?: string;
 }
 
+export interface CursorPaginationQuery {
+  limit?: string;
+  cursor?: string;
+}
+
+export interface SearchWithCursorQuery extends CursorPaginationQuery {
+  q?: string;
+}
+
 // Validation Schemas (Elysia TypeBox)
 export const FolderSchema = {
   params: {
@@ -26,6 +35,15 @@ export const FolderSchema = {
   },
   query: {
     search: t.Object({ q: t.Optional(t.String()) }),
+    searchWithCursor: t.Object({
+      q: t.Optional(t.String()),
+      limit: t.Optional(t.String()),
+      cursor: t.Optional(t.String()),
+    }),
+    cursorPagination: t.Object({
+      limit: t.Optional(t.String()),
+      cursor: t.Optional(t.String()),
+    }),
   },
   body: {
     create: t.Object({
