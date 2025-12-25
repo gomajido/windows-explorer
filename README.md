@@ -9,37 +9,14 @@
 
 ### Prerequisites
 
-**Required for all setups:**
 - **Docker** 20.10+ and **Docker Compose** 2.0+
-- **Bun** 1.0+ (for database operations)
-
-**Additional for Option 2 (Full Development):**
+- **Git**
+- **Bun** 1.0+
 - IDE with TypeScript support (VSCode, WebStorm, etc.)
 
 ---
 
-### 🐳 Option 1: Docker + Minimal Local Setup (Recommended)
-
-```bash
-# 1. Clone and enter directory
-git clone <repository-url>
-cd windows-explorer
-
-# 2. Start all services
-docker-compose up -d --build
-
-# 3. Setup database (requires local Bun)
-cd be-elysia
-bun install
-bun run db:push    # Create tables
-bun run db:seed    # Load sample data (1264 items)
-```
-
-**Done!** Open http://localhost:8080
-
----
-
-### 💻 Option 2: Full Development Setup
+### Setup Steps
 
 ```bash
 # 1. Clone and enter directory
@@ -53,19 +30,19 @@ cp fe-vue/.env.example fe-vue/.env
 # 3. Start Docker services
 docker-compose up -d --build
 
-# 4. Setup backend locally
+# 4. Setup backend
 cd be-elysia
 bun install
-bun run db:push    # Create tables
-bun run db:seed    # Load sample data (1264 items)
+bun run db:push
+bun run db:seed
 
-# 5. Setup frontend locally
+# 5. Setup frontend
 cd ../fe-vue
 bun install
 
 # 6. Run tests (optional)
-cd ../be-elysia && bun test        # Backend tests (53 tests)
-cd ../fe-vue && bun test src/__tests__  # Frontend tests (21 tests)
+cd ../be-elysia && bun test
+cd ../fe-vue && bun test src/__tests__
 ```
 
 **Done!** Open http://localhost:8080
