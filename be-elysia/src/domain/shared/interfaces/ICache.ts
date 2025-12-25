@@ -26,6 +26,13 @@ export interface ICache {
   delete(key: string): Promise<void>;
 
   /**
+   * Delete multiple keys matching a pattern (e.g., "folder:*")
+   * @param pattern Pattern with * wildcard support
+   * @returns Number of keys deleted
+   */
+  deletePattern(pattern: string): Promise<number>;
+
+  /**
    * Get value from cache or fetch and cache if not found
    * @param key Cache key
    * @param fetcher Function to fetch value if not cached

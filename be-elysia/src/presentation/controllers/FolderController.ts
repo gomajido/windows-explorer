@@ -29,7 +29,7 @@ export class FolderController {
     private updateFolderUseCase: UpdateFolderUseCase,
     private deleteFolderUseCase: DeleteFolderUseCase,
     private searchFoldersUseCase: SearchFoldersUseCase,
-    private searchFoldersWithCursorUseCase?: SearchFoldersWithCursorUseCase
+    private searchFoldersWithCursorUseCase: SearchFoldersWithCursorUseCase
   ) {}
 
   async getTree() {
@@ -47,9 +47,6 @@ export class FolderController {
    * Supports millions of records with O(1) pagination.
    */
   async searchWithCursor({ query }: Context<{ query: SearchWithCursorQuery }>) {
-    if (!this.searchFoldersWithCursorUseCase) {
-      return ApiResponseHelper.error("Cursor search not configured");
-    }
     const data = await this.searchFoldersWithCursorUseCase.execute({
       query: query.q || "",
       limit: query.limit ? parseInt(query.limit, 10) : undefined,

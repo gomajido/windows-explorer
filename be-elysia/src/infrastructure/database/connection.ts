@@ -45,4 +45,20 @@ export const db = writeDb;
 
 export type Database = typeof db;
 
+/**
+ * Execute a function within a database transaction
+ * Automatically commits on success, rolls back on error
+ * 
+ * @example
+ * await withTransaction(async (tx) => {
+ *   await tx.insert(folders).values({ name: "Test" });
+ *   await tx.update(folders).set({ name: "Updated" });
+ * });
+ */
+export async function withTransaction<T>(
+  callback: (tx: any) => Promise<T>
+): Promise<T> {
+  return await writeDb.transaction(callback);
+}
+
 export { masterPool as pool };

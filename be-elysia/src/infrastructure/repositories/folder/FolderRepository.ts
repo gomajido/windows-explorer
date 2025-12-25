@@ -1,5 +1,5 @@
 import { eq, isNull, desc, like, inArray, and, sql, gt } from "drizzle-orm";
-import { db as defaultDb, type Database } from "../../database/connection";
+import { db as defaultDb, type Database, withTransaction } from "../../database/connection";
 import { folders, type FolderRecord } from "../../database/schema";
 import type { IFolderRepository } from "../../../domain/folder/interfaces/IFolderRepository";
 import type { Folder, FolderTreeNode, PaginatedResult, FindAllOptions, CursorPaginatedResult, SearchOptions } from "../../../domain/folder/entities/Folder";
@@ -379,118 +379,132 @@ export class FolderRepository implements IFolderRepository {
 
   /**
    * Creates a new folder with parent validation.
-   * Uses transaction for data integrity.
+   * Uses transaction for data integrity - rolls back on any error.
    */
   async create(name: string, parentId: number | null, isFolder: boolean): Promise<Folder> {
     this.logger.debug("create", { name, parentId, isFolder });
 
-    // Validate parent exists if specified
-    if (parentId !== null) {
-      const parent = await this.findById(parentId);
-      if (!parent) {
-        throw new FolderNotFoundException(parentId);
+    return await withTransaction(async (tx) => {
+      // Validate parent exists if specified (within transaction)
+      if (parentId !== null) {
+        const parent = await this.findById(parentId);
+        if (!parent) {
+          throw new FolderNotFoundException(parentId);
+        }
+        if (!parent.isFolder) {
+          throw new ParentNotFolderException(parentId);
+        }
       }
-      if (!parent.isFolder) {
-        throw new ParentNotFolderException(parentId);
-      }
-    }
 
-    const result = await this.db.insert(folders).values({
-      name,
-      parentId,
-      isFolder,
+      // Insert the folder
+      const result = await tx.insert(folders).values({
+        name,
+        parentId,
+        isFolder,
+      });
+
+      const insertId = result[0].insertId;
+      
+      // Verify the insert succeeded
+      const created = await this.findById(insertId);
+      if (!created) {
+        throw new FolderCreationFailedException({ insertId });
+      }
+
+      return created;
     });
-
-    const insertId = result[0].insertId;
-    const created = await this.findById(insertId);
-    if (!created) throw new FolderCreationFailedException({ insertId });
-
-    return created;
   }
 
   /**
    * Updates a folder's name.
-   * Validates folder exists and is not deleted.
+   * Uses transaction - rolls back if folder doesn't exist.
    */
   async update(id: number, name: string): Promise<Folder> {
     this.logger.debug("update", { id, name });
 
-    const existing = await this.findById(id);
-    if (!existing) throw new FolderNotFoundException(id);
+    return await withTransaction(async (tx) => {
+      const existing = await this.findById(id);
+      if (!existing) throw new FolderNotFoundException(id);
 
-    await this.db
-      .update(folders)
-      .set({ name })
-      .where(eq(folders.id, id));
+      await tx
+        .update(folders)
+        .set({ name })
+        .where(eq(folders.id, id));
 
-    return { ...existing, name };
+      return { ...existing, name };
+    });
   }
 
   /**
    * Soft deletes a folder and all its descendants.
-   * Sets deletedAt timestamp instead of removing records.
+   * Uses transaction - all deletes succeed or all fail atomically.
    */
   async delete(id: number): Promise<void> {
     this.logger.debug("delete (soft)", { id });
 
-    const existing = await this.findById(id);
-    if (!existing) throw new FolderNotFoundException(id);
+    await withTransaction(async (tx) => {
+      const existing = await this.findById(id);
+      if (!existing) throw new FolderNotFoundException(id);
 
-    const idsToDelete = await this.collectDescendantIds(id);
-    idsToDelete.push(id);
+      const idsToDelete = await this.collectDescendantIds(id);
+      idsToDelete.push(id);
 
-    const now = new Date();
-    if (idsToDelete.length > 0) {
-      await this.db
-        .update(folders)
-        .set({ deletedAt: now })
-        .where(inArray(folders.id, idsToDelete));
-    }
-
+      const now = new Date();
+      if (idsToDelete.length > 0) {
+        await tx
+          .update(folders)
+          .set({ deletedAt: now })
+          .where(inArray(folders.id, idsToDelete));
+      }
+    });
   }
 
   /**
    * Permanently deletes a folder and all its descendants.
-   * Use with caution - this cannot be undone.
+   * Uses transaction - cannot be undone, but atomic.
    */
   async hardDelete(id: number): Promise<void> {
     this.logger.debug("hardDelete", { id });
 
-    const existing = await this.findById(id, true); // Include deleted
-    if (!existing) throw new FolderNotFoundException(id);
+    await withTransaction(async (tx) => {
+      const existing = await this.findById(id, true); // Include deleted
+      if (!existing) throw new FolderNotFoundException(id);
 
-    const idsToDelete = await this.collectDescendantIds(id, true);
-    idsToDelete.push(id);
+      const idsToDelete = await this.collectDescendantIds(id, true);
+      idsToDelete.push(id);
 
-    if (idsToDelete.length > 0) {
-      await this.db.delete(folders).where(inArray(folders.id, idsToDelete));
-    }
-
+      if (idsToDelete.length > 0) {
+        await tx.delete(folders).where(inArray(folders.id, idsToDelete));
+      }
+    });
   }
 
   /**
-   * Restores a soft-deleted folder and optionally its descendants.
+   * Restores a soft-deleted folder and all its descendants.
+   * Uses transaction - all restores succeed or all fail atomically.
    */
   async restore(id: number): Promise<Folder> {
     this.logger.debug("restore", { id });
 
-    const existing = await this.findById(id, true);
-    if (!existing) throw new FolderNotFoundException(id);
-    if (!existing.deletedAt) throw new FolderNotDeletedException(id);
+    return await withTransaction(async (tx) => {
+      const existing = await this.findById(id, true);
+      if (!existing) throw new FolderNotFoundException(id);
+      if (!existing.deletedAt) throw new FolderNotDeletedException(id);
 
-    // Restore the folder and all its descendants
-    const idsToRestore = await this.collectDescendantIds(id, true);
-    idsToRestore.push(id);
+      // Restore the folder and all its descendants
+      const idsToRestore = await this.collectDescendantIds(id, true);
+      idsToRestore.push(id);
 
-    await this.db
-      .update(folders)
-      .set({ deletedAt: null })
-      .where(inArray(folders.id, idsToRestore));
+      await tx
+        .update(folders)
+        .set({ deletedAt: null })
+        .where(inArray(folders.id, idsToRestore));
 
-    const restored = await this.findById(id);
-    if (!restored) throw new Error("Failed to restore folder");
+      const restored = await this.findById(id);
+      if (!restored) throw new Error("Failed to restore folder");
 
-    return restored;
+      return restored;
+    });
   }
 
   /**

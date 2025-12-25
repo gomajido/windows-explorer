@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
-import { useFolderService, type LazyTreeNode } from "@/application/services/FolderService";
+import { useFolderServiceWithCache } from "@/application/services/FolderServiceWithCache";
+import type { LazyTreeNode } from "@/application/services/FolderService";
 import FolderTree from "@/presentation/components/FolderTree.vue";
 import ContentPanel from "@/presentation/components/ContentPanel.vue";
 import SearchResults from "@/presentation/components/SearchResults.vue";
@@ -28,7 +29,7 @@ const {
   search,
   loadMoreResults,
   clearSearch,
-} = useFolderService();
+} = useFolderServiceWithCache();
 
 const searchInput = ref("");
 const viewMode = ref<"grid" | "list">("list");

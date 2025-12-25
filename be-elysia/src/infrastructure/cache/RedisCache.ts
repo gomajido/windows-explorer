@@ -150,6 +150,66 @@ export class RedisCache implements ICache {
   }
 
   /**
+   * Delete keys matching a pattern (e.g., "folder:children:*")
+   * Uses Redis SCAN for safe iteration
+   */
+  async deletePattern(pattern: string): Promise<number> {
+    if (!this.isConnected || !this.client) {
+      this.logger.debug(`Pattern delete (Memory fallback): ${pattern}`);
+      // Memory fallback: iterate and delete matching keys
+      let count = 0;
+      for (const key of this.memoryFallback.keys()) {
+        if (this.matchPattern(key, pattern)) {
+          this.memoryFallback.delete(key);
+          count++;
+        }
+      }
+      return count;
+    }
+
+    try {
+      let cursor = '0';
+      let deletedCount = 0;
+      
+      do {
+        // SCAN is safer than KEYS for production (non-blocking)
+        const [newCursor, keys] = await this.client.scan(
+          cursor,
+          'MATCH',
+          pattern,
+          'COUNT',
+          100
+        );
+        
+        cursor = newCursor;
+        
+        if (keys.length > 0) {
+          await this.client.del(...keys);
+          deletedCount += keys.length;
+        }
+      } while (cursor !== '0');
+      
+      this.logger.debug(`Pattern deleted: ${pattern} (${deletedCount} keys)`);
+      return deletedCount;
+    } catch (error) {
+      this.logger.error("Pattern delete error:", error);
+      return 0;
+    }
+  }
+
+  /**
+   * Simple pattern matching for memory fallback
+   * Supports * wildcard at end
+   */
+  private matchPattern(key: string, pattern: string): boolean {
+    if (pattern.endsWith('*')) {
+      const prefix = pattern.slice(0, -1);
+      return key.startsWith(prefix);
+    }
+    return key === pattern;
+  }
+
+  /**
    * Check if connected to Redis
    */
   isRedisConnected(): boolean {
