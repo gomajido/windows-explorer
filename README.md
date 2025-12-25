@@ -1,7 +1,6 @@
 # 📁 Windows Explorer Clone
 
-> **Technical Documentation:** [TECHNICAL-SPESIFICATION-DOCUMENT.md](./TECHNICAL-SPESIFICATION-DOCUMENT.md)  
-> **API Documentation:** http://localhost:3001/api/docs
+> **Technical Documentation:** [TECHNICAL-SPESIFICATION-DOCUMENT.md](./TECHNICAL-SPESIFICATION-DOCUMENT.md)
 
 ---
 
