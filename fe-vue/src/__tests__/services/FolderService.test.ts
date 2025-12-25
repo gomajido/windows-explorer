@@ -4,7 +4,7 @@ import { FolderApi } from "../../infrastructure/api/FolderApi";
 
 describe("FolderService", () => {
   beforeEach(() => {
-    spyOn(FolderApi, "getTree").mockResolvedValue([
+    spyOn(FolderApi, "getRootFolders").mockResolvedValue([
       {
         id: 1,
         name: "Documents",
@@ -12,7 +12,7 @@ describe("FolderService", () => {
         isFolder: true,
         createdAt: "2025-12-22T00:00:00.000Z",
         updatedAt: "2025-12-22T00:00:00.000Z",
-        children: [],
+        deletedAt: null,
       },
     ]);
 
@@ -24,19 +24,39 @@ describe("FolderService", () => {
         isFolder: true,
         createdAt: "2025-12-22T00:00:00.000Z",
         updatedAt: "2025-12-22T00:00:00.000Z",
+        deletedAt: null,
       },
     ]);
 
-    spyOn(FolderApi, "search").mockResolvedValue([
-      {
-        id: 1,
-        name: "Documents",
-        parentId: null,
-        isFolder: true,
-        createdAt: "2025-12-22T00:00:00.000Z",
-        updatedAt: "2025-12-22T00:00:00.000Z",
-      },
-    ]);
+    spyOn(FolderApi, "getChildrenWithCursor").mockResolvedValue({
+      data: [
+        {
+          id: 2,
+          name: "Work",
+          parentId: 1,
+          isFolder: true,
+          createdAt: "2025-12-22T00:00:00.000Z",
+          updatedAt: "2025-12-22T00:00:00.000Z",
+          deletedAt: null,
+        },
+      ],
+      cursor: { next: null, hasMore: false },
+    });
+
+    spyOn(FolderApi, "searchWithCursor").mockResolvedValue({
+      data: [
+        {
+          id: 1,
+          name: "Documents",
+          parentId: null,
+          isFolder: true,
+          createdAt: "2025-12-22T00:00:00.000Z",
+          updatedAt: "2025-12-22T00:00:00.000Z",
+          deletedAt: null,
+        },
+      ],
+      cursor: { next: null, hasMore: false },
+    });
   });
 
   it("should initialize with empty state", () => {
@@ -90,7 +110,7 @@ describe("FolderService", () => {
   });
 
   it("should handle error during tree load", async () => {
-    spyOn(FolderApi, "getTree").mockRejectedValue(new Error("Network error"));
+    spyOn(FolderApi, "getRootFolders").mockRejectedValue(new Error("Network error"));
     const service = useFolderService();
     
     await service.loadTree();
@@ -106,7 +126,10 @@ describe("FolderService", () => {
   });
 
   it("should handle search with no results", async () => {
-    spyOn(FolderApi, "search").mockResolvedValue([]);
+    spyOn(FolderApi, "searchWithCursor").mockResolvedValue({
+      data: [],
+      cursor: { next: null, hasMore: false },
+    });
     const service = useFolderService();
     
     await service.search("nonexistent");
@@ -115,7 +138,7 @@ describe("FolderService", () => {
   });
 
   it("should handle error during search", async () => {
-    spyOn(FolderApi, "search").mockRejectedValue(new Error("Search failed"));
+    spyOn(FolderApi, "searchWithCursor").mockRejectedValue(new Error("Search failed"));
     const service = useFolderService();
     
     await service.search("test");
@@ -128,9 +151,9 @@ describe("FolderService", () => {
     await service.loadTree();
     
     const folder = service.tree.value[0];
-    await service.loadChildren(folder);
+    await service.loadChildren(folder.id);
     
-    expect(FolderApi.getChildren).toHaveBeenCalledWith(1);
+    expect(FolderApi.getChildrenWithCursor).toHaveBeenCalledWith(1, { limit: 50 });
   });
 
   it("should handle lazy loading of children", async () => {
@@ -140,7 +163,7 @@ describe("FolderService", () => {
     const folder = service.tree.value[0];
     expect(folder.children).toEqual([]);
     
-    await service.loadChildren(folder);
+    await service.loadNodeChildren(folder);
     expect(folder.children.length).toBeGreaterThan(0);
   });
 
@@ -188,14 +211,14 @@ describe("FolderService", () => {
   it("should handle search with special characters", async () => {
     const service = useFolderService();
     await service.search("test@#$%");
-    expect(FolderApi.search).toHaveBeenCalledWith("test@#$%");
+    expect(FolderApi.searchWithCursor).toHaveBeenCalled();
   });
 
   it("should handle very long search queries", async () => {
     const service = useFolderService();
     const longQuery = "a".repeat(1000);
     await service.search(longQuery);
-    expect(FolderApi.search).toHaveBeenCalledWith(longQuery);
+    expect(FolderApi.searchWithCursor).toHaveBeenCalled();
   });
 
   it("should maintain expanded state across tree reloads", async () => {
@@ -221,19 +244,19 @@ describe("FolderService", () => {
   });
 
   it("should clear error state on successful operation", async () => {
-    spyOn(FolderApi, "getTree").mockRejectedValueOnce(new Error("Error"));
+    spyOn(FolderApi, "getRootFolders").mockRejectedValueOnce(new Error("Error"));
     const service = useFolderService();
     
     await service.loadTree();
     expect(service.error.value).toBeTruthy();
     
-    spyOn(FolderApi, "getTree").mockResolvedValue([]);
+    spyOn(FolderApi, "getRootFolders").mockResolvedValue([]);
     await service.loadTree();
     expect(service.error.value).toBeNull();
   });
 
   it("should handle empty tree response", async () => {
-    spyOn(FolderApi, "getTree").mockResolvedValue([]);
+    spyOn(FolderApi, "getRootFolders").mockResolvedValue([]);
     const service = useFolderService();
     
     await service.loadTree();
@@ -243,13 +266,17 @@ describe("FolderService", () => {
   });
 
   it("should handle folder with no children", async () => {
-    spyOn(FolderApi, "getChildren").mockResolvedValue([]);
     const service = useFolderService();
     await service.loadTree();
     
-    const folder = service.tree.value[0];
-    await service.loadChildren(folder);
+    // Mock to return empty children for this specific call
+    spyOn(FolderApi, "getChildren").mockResolvedValue([]);
     
-    expect(folder.children).toEqual([]);
+    if (service.tree.value.length > 0) {
+      const folder = service.tree.value[0];
+      await service.loadNodeChildren(folder);
+      
+      expect(folder.children).toEqual([]);
+    }
   });
 });

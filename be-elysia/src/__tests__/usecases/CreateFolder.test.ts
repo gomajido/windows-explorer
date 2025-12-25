@@ -10,7 +10,7 @@ describe("CreateFolderUseCase", () => {
 
   beforeEach(() => {
     mockRepository = createMockRepository();
-    useCase = new CreateFolderUseCase(mockRepository);
+    useCase = new CreateFolderUseCase(mockRepository, mockRepository);
   });
 
   it("should create folder with valid name", async () => {

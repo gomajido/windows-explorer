@@ -1,0 +1,4 @@
+[test]
+preload = ["./src/__tests__/setup.ts"]
+
+# Exclude E2E tests from bun test (use playwright test for those)
